@@ -12,4 +12,9 @@ public abstract class AbstractController {
 
     protected Logger log = LoggerFactory.getLogger(getClass());
 
+    public void sou() {
+        log.info("aaa");
+    }
+
+
 }

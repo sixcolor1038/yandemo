@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.yan.demo.javademo.mapper.StudentMapper">
+
+    <resultMap id="StudentMap" type="com.yan.demo.javademo.entity.Student">
+        <id property="sId" column="s_id"/>
+        <result property="sName" column="s_name"/>
+        <result property="sBirth" column="s_birth"/>
+        <result property="sSex" column="s_sex"/>
+    </resultMap>
+
+
+    <insert id="addStudent" parameterType="com.yan.demo.javademo.entity.Student">
+        insert into STUDENT(s_id,s_name,s_birth,s_sex)
+        values (#{sId},#{sName},#{sBirth},#{sSex})
+    </insert>
+
+</mapper>

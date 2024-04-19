@@ -1,6 +1,8 @@
 package com.yan.demo.common.utils;
 
 import com.yan.demo.common.constant.DateConstant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.time.LocalDateTime;
@@ -14,6 +16,8 @@ import java.util.TreeMap;
  * @Description:
  */
 public class FileUtils {
+    private static final Logger log = LoggerFactory.getLogger(FileUtils.class);
+
     /**
      * 重命名指定目录下的所有文件，移除特定的前缀。
      *
@@ -27,7 +31,7 @@ public class FileUtils {
 
         // 确保这是一个目录
         if (!directory.isDirectory()) {
-            System.out.println("Provided path is not a directory.");
+            log.info("提供的路径不是目录.");
             return;
         }
 
@@ -47,9 +51,9 @@ public class FileUtils {
                     if (!fileName.equals(newFileName)) {
                         File newFile = new File(directory, newFileName);
                         if (!file.renameTo(newFile)) {
-                            System.out.println("Failed to rename: " + file.getPath());
+                            log.info("重命名成功: " + file.getPath());
                         } else {
-                            System.out.println("Renamed to: " + newFile.getPath());
+                            log.info("重命名成功: " + newFile.getPath());
                         }
                     }
                 }
@@ -69,7 +73,7 @@ public class FileUtils {
 
         // 确保这是一个目录
         if (!directory.isDirectory()) {
-            System.out.println("Provided path is not a directory.");
+            log.info("提供的路径不是目录.");
             return;
         }
 
@@ -103,9 +107,9 @@ public class FileUtils {
 
                         // 重命名文件
                         if (!file.renameTo(newFile)) {
-                            System.out.println("Failed to rename: " + file.getPath());
+                            log.info("重命名成功: " + file.getPath());
                         } else {
-                            System.out.println("Renamed to: " + newFile.getPath());
+                            log.info("重命名成功: " + newFile.getPath());
                         }
                     }
                 }
@@ -114,17 +118,18 @@ public class FileUtils {
     }
 
     /**
-     * 统计指定目录及其子目录下的所有文件和文件夹的数量，按文件扩展名分类统计文件。
+     * 统计指定目录下的所有文件和文件夹的数量，按文件扩展名分类统计文件，并根据参数决定是否统计子目录。
      *
-     * @param directoryPath 目录的路径。
+     * @param directoryPath         目录的路径。
+     * @param includeSubdirectories 是否包含子目录的统计。
      * @return 包含文件统计信息的Map，其中包含嵌套的结构以表示子目录统计。
      */
-    public static Map<String, Object> countFilesAndFolders(String directoryPath) {
+    public static Map<String, Object> countFilesAndFolders(String directoryPath, boolean includeSubdirectories) {
         directoryPath = normalizePath(directoryPath);
         File directory = new File(directoryPath);
         Map<String, Object> stats = new TreeMap<>();
         if (directory.exists() && directory.isDirectory()) {
-            countFilesRecursive(directory, stats, 0);
+            countFilesRecursive(directory, stats, 0, includeSubdirectories);
         }
         return stats;
     }
@@ -132,20 +137,22 @@ public class FileUtils {
     /**
      * 递归统计文件和文件夹
      *
-     * @param directory 目录文件对象
-     * @param stats     统计结果映射表
-     * @param level     当前递归的层级
+     * @param directory             文件夹对象
+     * @param stats                 统计结果映射表
+     * @param level                 当前递归的层级
+     * @param includeSubdirectories 是否递归统计子目录
      */
-    private static void countFilesRecursive(File directory, Map<String, Object> stats, int level) {
+    private static void countFilesRecursive(File directory, Map<String, Object> stats, int level, boolean includeSubdirectories) {
         File[] files = directory.listFiles();
         if (files != null) {
             for (File file : files) {
                 if (file.isDirectory()) {
                     Map<String, Object> subStats = new TreeMap<>();
-                    countFilesRecursive(file, subStats, level + 1);
-                    stats.put(file.getName(), subStats);
+                    if (includeSubdirectories) {
+                        countFilesRecursive(file, subStats, level + 1, includeSubdirectories);
+                        stats.put(file.getName(), subStats);
+                    }
                 } else {
-                    // 如果是文件，按扩展名统计
                     String extension = getExtension(file.getName());
                     stats.put(extension, ((Integer) stats.getOrDefault(extension, 0)) + 1);
                 }
@@ -174,12 +181,12 @@ public class FileUtils {
         String indent = StringUtils.repeatString("  ", level);
         for (Map.Entry<String, Object> entry : stats.entrySet()) {
             if (entry.getValue() instanceof Map<?, ?>) {
-                System.out.println(indent + entry.getKey() + ":");
+                log.info(indent + entry.getKey() + ":");
                 @SuppressWarnings("unchecked")
                 Map<String, Object> subMap = (Map<String, Object>) entry.getValue();
                 printStatistics(subMap, level + 1);
             } else {
-                System.out.println(indent + entry.getKey() + ": " + entry.getValue());
+                log.info(indent + entry.getKey() + ": " + entry.getValue());
             }
         }
     }

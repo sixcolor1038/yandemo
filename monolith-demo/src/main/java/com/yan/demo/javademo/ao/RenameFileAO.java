@@ -1,4 +1,4 @@
-package com.yan.demo.javademo.entity;
+package com.yan.demo.javademo.ao;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -24,4 +24,6 @@ public class RenameFileAO {
     private List<String> prefixes;
     @ApiModelProperty("操作类型")
     private String type;
+    @ApiModelProperty("是否包含子目录")
+    private boolean includeSubdirectories = false;
 }

@@ -59,7 +59,7 @@ public class RResult<T> implements Serializable {
         return this;
     }
 
-    public static <T> RResult<T> fail() {
+    public static <T> RResult<T> failed() {
         return new RResult<>(HttpStatus.FAILED.getCode(), HttpStatus.FAILED.getMessage(), null);
     }
 

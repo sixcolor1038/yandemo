@@ -1,7 +1,7 @@
 package com.yan.demo.javademo.service;
 
 import com.yan.demo.common.utils.RResult;
-import com.yan.demo.javademo.entity.RenameFileAO;
+import com.yan.demo.javademo.ao.RenameFileAO;
 
 /**
  * @Author: sixcolor
