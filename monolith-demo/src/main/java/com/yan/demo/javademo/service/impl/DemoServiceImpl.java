@@ -3,9 +3,12 @@ package com.yan.demo.javademo.service.impl;
 import com.yan.demo.common.utils.FileUtils;
 import com.yan.demo.common.utils.ObjectUtils;
 import com.yan.demo.common.utils.RResult;
+import com.yan.demo.common.utils.RandomGeneratorUtils;
 import com.yan.demo.javademo.ao.RenameFileAO;
+import com.yan.demo.javademo.entity.Student;
 import com.yan.demo.javademo.mapper.DemoMapper;
 import com.yan.demo.javademo.service.DemoService;
+import com.yan.demo.javademo.service.StudentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +29,8 @@ public class DemoServiceImpl implements DemoService {
 
     @Autowired
     private DemoMapper demoMapper;
+    @Autowired
+    private StudentService studentService;
 
     @Override
     public RResult<Boolean> renameFile(RenameFileAO ao) {
@@ -44,8 +49,22 @@ public class DemoServiceImpl implements DemoService {
             int count = 0;
             count += ObjectUtils.objectToInt(stats.get("jpg"));
             count += ObjectUtils.objectToInt(stats.get("png"));
-            log.info("图片数量：{}",count);
+            log.info("图片数量：{}", count);
         }
+        addStudent();
         return RResult.success(true);
     }
+
+
+    public void addStudent() {
+        long timeMillis = System.currentTimeMillis();
+        Student student = Student.builder()
+                .SID(null)
+                .SName(RandomGeneratorUtils.generateRandomName())
+                .SSex(timeMillis % 2 == 0 ? "男" : "女")
+                .SBirth(RandomGeneratorUtils.generateRandomAge())
+                .build();
+        studentService.addStudent(student);
+    }
+
 }

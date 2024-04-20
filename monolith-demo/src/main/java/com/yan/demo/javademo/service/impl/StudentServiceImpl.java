@@ -7,8 +7,10 @@ import com.yan.demo.javademo.mapper.StudentMapper;
 import com.yan.demo.javademo.service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * @Author: sixcolor
@@ -33,8 +35,9 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
+    @Transactional
     public int addStudent(Student student) {
-        redisTemplate.opsForValue().set("aas","fdasf");
+        redisTemplate.opsForValue().set("aas", "AAB", 60, TimeUnit.SECONDS);
         Long nextId = redisUtil.getNextId(RedisConstant.STUDENT_ID_NEXT);
         return studentMapper.addStudent(Student.builder()
                 .SID(String.valueOf(nextId))

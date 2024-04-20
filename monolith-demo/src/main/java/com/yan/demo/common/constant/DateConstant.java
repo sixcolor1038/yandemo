@@ -10,6 +10,22 @@ import java.util.regex.Pattern;
  */
 public class DateConstant {
     /**
+     * 默认日期时间格式
+     */
+    public static final String DEFAULT_DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
+    /**
+     * 默认日期格式
+     */
+    public static final String DEFAULT_DATE_FORMAT = "yyyy-MM-dd";
+    /**
+     * 格式化日期
+     */
+    public static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    /**
+     * 默认时间格式
+     */
+    public static final String DEFAULT_TIME_FORMAT = "HH:mm:ss";
+    /**
      * 时间戳
      */
     public static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");

@@ -26,7 +26,6 @@ public class DemoController extends AbstractController {
     @Autowired
     private DemoService demoService;
 
-
     @PostMapping("/rename")
     @ApiOperation(value = "重命名文件")
     public RResult<Boolean> renameFile(@ApiParam(name = "RenameFileAO", value = "需修改文件") @RequestBody RenameFileAO ao) {

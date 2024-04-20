@@ -7,14 +7,14 @@ import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
+import java.util.Optional;
 
-@ComponentScan("com.yan.demo.*")
 @Component
 @Aspect
 public class WebLogAspect {
@@ -26,33 +26,31 @@ public class WebLogAspect {
 
     @Before("controllerLog()")
     public void beforeLog(JoinPoint joinPoint) {
-
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        HttpServletRequest request = attributes.getRequest();
+        HttpServletRequest request = Optional.ofNullable(attributes).map(ServletRequestAttributes::getRequest).orElse(null);
 
-        // 打印请求信息
-        log.info("请求URL: {}", request.getRequestURL());
-        log.info("HTTP 方法: {}", request.getMethod());
-        //log.info("IP: {}", request.getRemoteAddr());
-        log.info("类 方法: {}", joinPoint.getSignature().getDeclaringTypeName() + "." + joinPoint.getSignature().getName());
-        log.info("请求 参数: {}", joinPoint.getArgs());
+        if (request != null) {
+            log.info("请求URL: {}", request.getRequestURL());
+            log.info("HTTP 方法: {}", request.getMethod());
+            log.info("类 方法: {}", joinPoint.getSignature().getDeclaringTypeName() + "." + joinPoint.getSignature().getName());
+            log.info("请求 参数: {}", joinPoint.getArgs());
 
-        long start = System.currentTimeMillis();
-        request.setAttribute("start", start);
-
+            request.setAttribute("methodSignature", joinPoint.getSignature().toShortString());
+            request.setAttribute("methodArgs", Arrays.toString(joinPoint.getArgs()));
+            request.setAttribute("start", System.currentTimeMillis());
+        }
     }
 
     @AfterReturning(pointcut = "controllerLog()", returning = "result")
-    public void afterReturningLog(JoinPoint joinPoint, Object result) {
+    public void afterReturningLog(Object result) {
+        HttpServletRequest request = Optional.ofNullable((ServletRequestAttributes) RequestContextHolder.getRequestAttributes())
+                .map(ServletRequestAttributes::getRequest).orElse(null);
 
-        long start = (Long) RequestContextHolder.getRequestAttributes().getAttribute("start", 0);
-        long end = System.currentTimeMillis();
-
-        log.info("请求 结果: {}", result);
-        log.info("本次共耗时: {} ms", end - start);
-
+        if (request != null) {
+            long start = Optional.ofNullable((Long) request.getAttribute("start")).orElse(0L);
+            long end = System.currentTimeMillis();
+            log.info("请求 结果: {}", result);
+            log.info("本次共耗时: {} ms", end - start);
+        }
     }
-
 }
-
-
