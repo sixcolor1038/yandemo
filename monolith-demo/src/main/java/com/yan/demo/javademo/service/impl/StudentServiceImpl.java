@@ -1,7 +1,7 @@
 package com.yan.demo.javademo.service.impl;
 
 import com.yan.demo.common.constant.RedisConstant;
-import com.yan.demo.common.utils.RedisUtil;
+import com.yan.demo.common.utils.RedisUtils;
 import com.yan.demo.javademo.entity.Student;
 import com.yan.demo.javademo.mapper.StudentMapper;
 import com.yan.demo.javademo.service.StudentService;
@@ -22,7 +22,7 @@ public class StudentServiceImpl implements StudentService {
     @Autowired
     private StudentMapper studentMapper;
     @Autowired
-    private RedisUtil redisUtil;
+    private RedisUtils redisUtil;
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 

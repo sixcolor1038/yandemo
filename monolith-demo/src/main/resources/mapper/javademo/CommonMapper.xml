@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.yan.demo.javademo.mapper.CommonMapper">
+
+
+    <!--新增数据-->
+    <insert id="addCommonRec" parameterType="com.yan.demo.javademo.entity.CommonRec">
+        insert into COMMON_REC(ID,CODE,NAME,TYPE,VALUE)
+        values (#{id},#{code},#{name},#{type},#{value})
+    </insert>
+    <!-- 更新数据 -->
+    <update id="updateCommonRec" parameterType="com.yan.demo.javademo.entity.CommonRec">
+        update COMMON_REC
+        <set>
+            <if test="id != null and id != ''">
+                ID = #{id},
+            </if>
+            <if test="code != null and code != ''">
+                CODE = #{code},
+            </if>
+            <if test="name != null and name != ''">
+                NAME = #{name},
+            </if>
+            <if test="type != null and type != ''">
+                TYPE = #{type},
+            </if>
+            <if test="value != null and value != ''">
+                VALUE = #{value},
+            </if>
+        </set>
+        where ID = #{id}
+    </update>
+</mapper>

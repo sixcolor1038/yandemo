@@ -1,11 +1,11 @@
 package com.yan.demo.javademo.service.impl;
 
-import com.yan.demo.common.utils.FileUtils;
-import com.yan.demo.common.utils.ObjectUtils;
-import com.yan.demo.common.utils.RResult;
-import com.yan.demo.common.utils.RandomGeneratorUtils;
+import com.yan.demo.common.utils.*;
+import com.yan.demo.common.utils.generator.BuilderGenerator;
 import com.yan.demo.javademo.ao.RenameFileAO;
+import com.yan.demo.javademo.entity.CommonRec;
 import com.yan.demo.javademo.entity.Student;
+import com.yan.demo.javademo.mapper.CommonMapper;
 import com.yan.demo.javademo.mapper.DemoMapper;
 import com.yan.demo.javademo.service.DemoService;
 import com.yan.demo.javademo.service.StudentService;
@@ -13,9 +13,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Map;
-import java.util.Objects;
+import java.io.IOException;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @Author: sixcolor
@@ -31,6 +33,10 @@ public class DemoServiceImpl implements DemoService {
     private DemoMapper demoMapper;
     @Autowired
     private StudentService studentService;
+    @Autowired
+    private CommonMapper commonMapper;
+    @Autowired
+    private RedisUtils redisUtil;
 
     @Override
     public RResult<Boolean> renameFile(RenameFileAO ao) {
@@ -46,13 +52,24 @@ public class DemoServiceImpl implements DemoService {
             //统计文件数量
             Map<String, Object> stats = FileUtils.countFilesAndFolders(ao.getPath(), ao.isIncludeSubdirectories());
             FileUtils.printStatistics(stats, 0);
+            Map<String, Integer> counted = MapUtils.countMapByKey(stats, Arrays.asList("jpg", "png"));
             int count = 0;
-            count += ObjectUtils.objectToInt(stats.get("jpg"));
-            count += ObjectUtils.objectToInt(stats.get("png"));
+            count += ObjectUtils.objectToInt(counted.get("jpg"));
+            count += ObjectUtils.objectToInt(counted.get("png"));
             log.info("图片数量：{}", count);
+            updateCommonRec(count);
         }
         addStudent();
         return RResult.success(true);
+    }
+
+    public void updateCommonRec(int count) {
+        CommonRec build = CommonRec.builder()
+                .id(1L)
+                .name("图片数量")
+                .value(String.valueOf(count))
+                .build();
+        commonMapper.updateCommonRec(build);
     }
 
 
@@ -65,6 +82,27 @@ public class DemoServiceImpl implements DemoService {
                 .SBirth(RandomGeneratorUtils.generateRandomAge())
                 .build();
         studentService.addStudent(student);
+    }
+
+    @Override
+    public RResult<Boolean> generateBuilderByExcel(MultipartFile file) throws IOException {
+        // 从第二行开始遍历
+        int num = 1;
+        List<List<String>> excelData = ExcelUtils.readExcelFile(num, file.getInputStream());
+        log.info("读取excel数据:{}", excelData);
+        Map<String, List<List<String>>> groupedByClassName = excelData.stream()
+                .collect(Collectors.groupingBy(list -> list.get(0)));
+        groupedByClassName.forEach((className, fields) -> {
+            List<BuilderGenerator.Field> list = new ArrayList<>();
+            fields.forEach(x -> {
+                BuilderGenerator.Field field = new BuilderGenerator.Field();
+                field.setName(x.get(1));
+                field.setType(x.get(2));
+                list.add(field);
+            });
+            BuilderGenerator.generateByExcel(className, list);
+        });
+        return RResult.success(true);
     }
 
 }

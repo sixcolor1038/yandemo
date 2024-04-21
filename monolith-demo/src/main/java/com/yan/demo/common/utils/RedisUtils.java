@@ -12,8 +12,8 @@ import org.springframework.stereotype.Component;
  * @Description:
  */
 @Component
-public class RedisUtil {
-    private static final Logger log = LoggerFactory.getLogger(RedisUtil.class);
+public class RedisUtils {
+    private static final Logger log = LoggerFactory.getLogger(RedisUtils.class);
     @Autowired
     private StringRedisTemplate redisTemplate;
 
