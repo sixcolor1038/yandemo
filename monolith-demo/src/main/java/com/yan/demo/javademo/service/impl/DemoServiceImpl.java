@@ -74,11 +74,10 @@ public class DemoServiceImpl implements DemoService {
 
 
     public void addStudent() {
-        long timeMillis = System.currentTimeMillis();
         Student student = Student.builder()
                 .SID(null)
                 .SName(RandomGeneratorUtils.generateRandomName())
-                .SSex(timeMillis % 2 == 0 ? "男" : "女")
+                .SSex(System.currentTimeMillis() % 2 == 0 ? "男" : "女")
                 .SBirth(RandomGeneratorUtils.generateRandomAge())
                 .build();
         studentService.addStudent(student);

@@ -37,8 +37,6 @@ public class DemoController extends AbstractController {
     public RResult<Boolean> generateBuilderByExcel(
             @ApiParam(value = "选择文件", required = true)
             @RequestParam("file") MultipartFile file) throws IOException {
-
-        // 你的逻辑代码
         return RResult.success(demoService.generateBuilderByExcel(file).getData());
     }
 

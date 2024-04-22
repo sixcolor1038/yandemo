@@ -18,10 +18,9 @@ import java.util.List;
 public class BuilderGenerator {
     private static final Logger log = LoggerFactory.getLogger(BuilderGenerator.class);
 
-
     public static void generateByExcel(String className, List<Field> fields) {
         String currentDirectory = System.getProperty("user.dir");
-        String outputDirectory = currentDirectory + File.separator + "generator";
+        String outputDirectory = currentDirectory + File.separator + "monolith-demo\\src\\main\\java\\com\\yan\\demo\\" + "generator";
         String filePath = outputDirectory + File.separator + className + ".java";
 
         generateClassFile(className, fields, filePath);
@@ -53,9 +52,7 @@ public class BuilderGenerator {
     public static String generateClass(String className, List<Field> fields) {
         StringBuilder sb = new StringBuilder();
 
-        // 生成imports
-        sb.append("import lombok.Data;\n\n");
-        sb.append("@Data\n");
+        // 生成类定义
         sb.append("public class ").append(className).append(" {\n\n");
 
         // 生成 fields
@@ -64,16 +61,37 @@ public class BuilderGenerator {
         }
         sb.append("\n");
 
-        // 生成 constructor
+        // 生成默认构造函数
         sb.append("    public ").append(className).append("() {\n");
         sb.append("    }\n\n");
 
-        // 生成 private constructor
+        // 生成私有构造函数
         sb.append("    private ").append(className).append("(Builder builder) {\n");
         for (Field field : fields) {
             sb.append("        this.").append(field.name).append(" = builder.").append(field.name).append(";\n");
         }
         sb.append("    }\n\n");
+
+        // 生成 getter 和 setter 方法
+        for (Field field : fields) {
+            sb.append("    public ").append(field.type).append(" get").append(capitalize(field.name)).append("() {\n");
+            sb.append("        return ").append(field.name).append(";\n");
+            sb.append("    }\n\n");
+
+            sb.append("    public void set").append(capitalize(field.name)).append("(").append(field.type).append(" ").append(field.name).append(") {\n");
+            sb.append("        this.").append(field.name).append(" = ").append(field.name).append(";\n");
+            sb.append("    }\n\n");
+        }
+
+        // 生成 toString 方法
+        sb.append("    @Override\n");
+        sb.append("    public String toString() {\n");
+        sb.append("        return \"").append(className).append("{\" +\n");
+        for (Field field : fields) {
+            sb.append("                \"").append(field.name).append("='\" + ").append(field.name).append(" + '\\'' +\n");
+        }
+        sb.append("                '}';\n");
+        sb.append("    }\n");
 
         // 生成 builder method
         sb.append("    public static Builder builder() {\n");
@@ -105,6 +123,10 @@ public class BuilderGenerator {
         return sb.toString();
     }
 
+    private static String capitalize(String str) {
+        return str.substring(0, 1).toUpperCase() + str.substring(1);
+    }
+
     public static class Field {
         public String type;
         public String name;
@@ -128,5 +150,4 @@ public class BuilderGenerator {
                     '}';
         }
     }
-
 }

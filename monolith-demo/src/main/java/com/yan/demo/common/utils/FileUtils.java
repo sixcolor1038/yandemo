@@ -51,9 +51,9 @@ public class FileUtils {
                     if (!fileName.equals(newFileName)) {
                         File newFile = new File(directory, newFileName);
                         if (!file.renameTo(newFile)) {
-                            log.info("重命名成功: " + file.getPath());
+                            log.info("重命名失败: 文件名:{}", fileName);
                         } else {
-                            log.info("重命名成功: " + newFile.getPath());
+                            log.info("重命名成功: 原文件名:{},  新文件名:{}", fileName, newFile.getPath());
                         }
                     }
                 }
@@ -107,9 +107,9 @@ public class FileUtils {
 
                         // 重命名文件
                         if (!file.renameTo(newFile)) {
-                            log.info("重命名成功: " + file.getPath());
+                            log.info("重命名失败: {}", file.getPath());
                         } else {
-                            log.info("重命名成功: " + newFile.getPath());
+                            log.info("重命名成功: 原文件名:{},  新文件名:{}", fileName, newFile.getPath());
                         }
                     }
                 }
