@@ -12,7 +12,9 @@ import java.util.Random;
  * @Description:
  */
 public class RandomGeneratorUtils {
-
+    /**
+     * 随机生成年龄 格式：yyyy-MM-dd
+     */
     public static String generateRandomAge() {
         Random random = new Random();
         // 生成随机年份（1950年至2020年之间）

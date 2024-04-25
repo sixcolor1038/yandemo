@@ -28,4 +28,24 @@ public class TimeUtils {
     public static LocalDate getLastDayOfCurrentMonth() {
         return LocalDate.now().with(TemporalAdjusters.lastDayOfMonth());
     }
+
+    public static String formatMillToHM(int time) {
+        int hours = time / 3600;
+        int remainSeconds = time % 3600;
+        int minutes = remainSeconds / 60;
+        if (remainSeconds % 60 > 0) {
+            minutes++;
+        }
+        return formatTimeHM(hours, minutes);
+    }
+
+    private static String formatTimeHM(int hours, int minutes) {
+        if (hours > 0 && minutes > 0) {
+            return hours + "h" + minutes + "m";
+        } else if (hours > 0) {
+            return hours + "h";
+        } else {
+            return minutes + "m";
+        }
+    }
 }
