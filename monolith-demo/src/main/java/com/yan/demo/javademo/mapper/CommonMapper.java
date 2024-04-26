@@ -15,4 +15,6 @@ public interface CommonMapper {
 
     void updateCommonRec(CommonRec rec);
 
+    CommonRec queryCommonRec(CommonRec rec);
+
 }

@@ -30,4 +30,9 @@
         </set>
         where ID = #{id}
     </update>
+    <select id="queryCommonRec" resultType="com.yan.demo.javademo.entity.CommonRec">
+        select *
+        from COMMON_REC
+       where ID = #{id}
+    </select>
 </mapper>

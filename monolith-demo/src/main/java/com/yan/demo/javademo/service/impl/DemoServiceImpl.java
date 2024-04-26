@@ -1,5 +1,6 @@
 package com.yan.demo.javademo.service.impl;
 
+import com.yan.demo.common.constant.BaseConstant;
 import com.yan.demo.common.utils.*;
 import com.yan.demo.common.utils.generator.BuilderGenerator;
 import com.yan.demo.javademo.ao.RenameFileAO;
@@ -12,7 +13,9 @@ import com.yan.demo.javademo.service.StudentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -102,6 +105,17 @@ public class DemoServiceImpl implements DemoService {
             BuilderGenerator.generateByExcel(className, list);
         });
         return RResult.success(true);
+    }
+
+    @Scheduled(cron = "0 0/10 * * * ? ")
+    @Transactional(rollbackFor = Exception.class)
+    public void updateImageCount() {
+        CommonRec commonRec = commonMapper.queryCommonRec(CommonRec.builder().id(2L).build());
+        RenameFileAO ao = new RenameFileAO();
+        ao.setPath(commonRec.getValue());
+        ao.setIncludeSubdirectories(true);
+        ao.setType(BaseConstant.STR_THREE);
+        renameFile(ao);
     }
 
 }

@@ -29,6 +29,9 @@ public class TimeUtils {
         return LocalDate.now().with(TemporalAdjusters.lastDayOfMonth());
     }
 
+    /**
+     * 将秒转为特定时间格式，如6000秒 转为 1h40m
+     */
     public static String formatMillToHM(int time) {
         int hours = time / 3600;
         int remainSeconds = time % 3600;
