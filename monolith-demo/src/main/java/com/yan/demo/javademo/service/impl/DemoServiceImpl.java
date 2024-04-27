@@ -1,6 +1,7 @@
 package com.yan.demo.javademo.service.impl;
 
 import com.yan.demo.common.constant.BaseConstant;
+import com.yan.demo.common.constant.DateConstant;
 import com.yan.demo.common.utils.*;
 import com.yan.demo.common.utils.generator.BuilderGenerator;
 import com.yan.demo.javademo.ao.RenameFileAO;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -69,7 +71,7 @@ public class DemoServiceImpl implements DemoService {
     public void updateCommonRec(int count) {
         CommonRec build = CommonRec.builder()
                 .id(1L)
-                .name("图片数量")
+                .name("视图数量")
                 .value(String.valueOf(count))
                 .build();
         commonMapper.updateCommonRec(build);
@@ -107,15 +109,45 @@ public class DemoServiceImpl implements DemoService {
         return RResult.success(true);
     }
 
-    @Scheduled(cron = "0 0/10 * * * ? ")
+    @Scheduled(cron = "0 0/60 * * * ? ")
     @Transactional(rollbackFor = Exception.class)
     public void updateImageCount() {
         CommonRec commonRec = commonMapper.queryCommonRec(CommonRec.builder().id(2L).build());
+        checkCommonRec(commonRec);
         RenameFileAO ao = new RenameFileAO();
         ao.setPath(commonRec.getValue());
         ao.setIncludeSubdirectories(true);
         ao.setType(BaseConstant.STR_THREE);
-        renameFile(ao);
+        ao.setPrefixes(Arrays.asList(commonRec.getRemark().split(",")));
+        //统计文件数量
+        Map<String, Object> stats = FileUtils.countFilesAndFolders(ao.getPath(), ao.isIncludeSubdirectories());
+        FileUtils.printStatistics(stats, 0);
+        Map<String, Integer> counted = MapUtils.countMapByKey(stats, Arrays.asList("jpg", "png", "gif", "mp4"));
+        int count = 0;
+        count += ObjectUtils.objectToInt(counted.get("jpg"));
+        count += ObjectUtils.objectToInt(counted.get("png"));
+        count += ObjectUtils.objectToInt(counted.get("gif"));
+        count += ObjectUtils.objectToInt(counted.get("mp4"));
+        log.info("数量：{}", count);
+        updateCommonRec(count);
+        log.info("入参:{}", ao);
+        FileUtils.renameFilesInDirectory(ao.getPath(), ao.getPrefixes());
+        autoRename();
+        log.info("文件重命名结束,结束时间:{}", LocalDateTime.now().format(DateConstant.DATE_TIME_FORMAT));
+    }
+
+    public void autoRename() {
+        CommonRec commonRec = commonMapper.queryCommonRec(CommonRec.builder().id(3L).build());
+        checkCommonRec(commonRec);
+        FileUtils.renameFilesInDirectory(commonRec.getValue(), Arrays.asList(commonRec.getRemark().split(",")));
+    }
+
+    private void checkCommonRec(CommonRec commonRec) {
+        if (null == commonRec.getValue() || null == commonRec.getRemark()) {
+            RResult.failed();
+            return;
+        }
+        RResult.ok();
     }
 
 }

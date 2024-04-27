@@ -16,6 +16,7 @@ public class CommonRec {
     private String name;
     private String type;
     private String value;
+    private String remark;
 
     public CommonRec() {
     }
@@ -26,6 +27,7 @@ public class CommonRec {
         this.name = builder.name;
         this.type = builder.type;
         this.value = builder.value;
+        this.remark = builder.remark;
     }
 
     public static Builder builder() {
@@ -38,6 +40,7 @@ public class CommonRec {
         private String name;
         private String type;
         private String value;
+        private String remark;
 
         public Builder id(Long id) {
             this.id = id;
@@ -61,6 +64,11 @@ public class CommonRec {
 
         public Builder value(String value) {
             this.value = value;
+            return this;
+        }
+
+        public Builder remark(String remark) {
+            this.remark = remark;
             return this;
         }
 

@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
 
 /**
  * @Author: sixcolor
@@ -44,9 +45,13 @@ public class FileUtils {
                     // 替换文件名中的指定前缀
                     String newFileName = fileName;
                     for (String prefix : prefixes) {
-                        newFileName = newFileName.replaceFirst("^" + prefix, "");
+                        // 去除前缀字符串中的引号
+                        String cleanPrefix = prefix.replace("\"", "");
+                        // 使用 Pattern.quote 方法转义前缀字符串，确保不受到正则表达式的影响
+                        String escapedPrefix = Pattern.quote(cleanPrefix);
+                        log.debug("前缀：{}", escapedPrefix);
+                        newFileName = newFileName.replaceFirst("^" + escapedPrefix, "");
                     }
-
                     // 如果文件名发生变化，执行重命名操作
                     if (!fileName.equals(newFileName)) {
                         File newFile = new File(directory, newFileName);

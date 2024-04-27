@@ -14,11 +14,16 @@ public class DateConstant {
      */
     public static final String DEFAULT_DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
     /**
+     * 格式化日期
+     */
+    public static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    /**
      * 默认日期格式
      */
     public static final String DEFAULT_DATE_FORMAT = "yyyy-MM-dd";
     /**
-     * 格式化日期
+     * 格式化日期时间
      */
     public static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     /**
