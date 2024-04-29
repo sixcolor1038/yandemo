@@ -1,4 +1,4 @@
-package com.yan.demo.demo01;
+package com.yan.demo.easydemo;
 
 
 import java.util.ArrayList;

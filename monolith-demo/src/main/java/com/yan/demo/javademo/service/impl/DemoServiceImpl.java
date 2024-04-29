@@ -1,7 +1,7 @@
 package com.yan.demo.javademo.service.impl;
 
-import com.yan.demo.common.constant.BaseConstant;
 import com.yan.demo.common.constant.DateConstant;
+import com.yan.demo.common.constant.NumberConstant;
 import com.yan.demo.common.utils.*;
 import com.yan.demo.common.utils.generator.BuilderGenerator;
 import com.yan.demo.javademo.ao.RenameFileAO;
@@ -117,7 +117,7 @@ public class DemoServiceImpl implements DemoService {
         RenameFileAO ao = new RenameFileAO();
         ao.setPath(commonRec.getValue());
         ao.setIncludeSubdirectories(true);
-        ao.setType(BaseConstant.STR_THREE);
+        ao.setType(NumberConstant.STR_THREE);
         ao.setPrefixes(Arrays.asList(commonRec.getRemark().split(",")));
         //统计文件数量
         Map<String, Object> stats = FileUtils.countFilesAndFolders(ao.getPath(), ao.isIncludeSubdirectories());
@@ -132,6 +132,7 @@ public class DemoServiceImpl implements DemoService {
         updateCommonRec(count);
         log.info("入参:{}", ao);
         FileUtils.renameFilesInDirectory(ao.getPath(), ao.getPrefixes());
+        FileUtils.renameFilesWithTimestamp(ao.getPath());
         autoRename();
         log.info("文件重命名结束,结束时间:{}", LocalDateTime.now().format(DateConstant.DATE_TIME_FORMAT));
     }
@@ -140,6 +141,7 @@ public class DemoServiceImpl implements DemoService {
         CommonRec commonRec = commonMapper.queryCommonRec(CommonRec.builder().id(3L).build());
         checkCommonRec(commonRec);
         FileUtils.renameFilesInDirectory(commonRec.getValue(), Arrays.asList(commonRec.getRemark().split(",")));
+        FileUtils.renameFilesWithTimestamp(commonRec.getValue());
     }
 
     private void checkCommonRec(CommonRec commonRec) {

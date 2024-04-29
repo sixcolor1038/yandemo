@@ -6,5 +6,5 @@ package com.yan.demo.common.constant;
  * @Description:
  */
 public class BaseConstant {
-    public static final String STR_THREE = "03";
+
 }
