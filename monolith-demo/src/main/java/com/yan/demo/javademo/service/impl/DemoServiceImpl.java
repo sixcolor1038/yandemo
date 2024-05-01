@@ -4,7 +4,9 @@ import com.yan.demo.common.constant.DateConstant;
 import com.yan.demo.common.constant.NumberConstant;
 import com.yan.demo.common.utils.*;
 import com.yan.demo.common.utils.generator.BuilderGenerator;
+import com.yan.demo.javademo.ao.AreaAO;
 import com.yan.demo.javademo.ao.RenameFileAO;
+import com.yan.demo.javademo.entity.Area;
 import com.yan.demo.javademo.entity.CommonRec;
 import com.yan.demo.javademo.entity.Student;
 import com.yan.demo.javademo.mapper.CommonMapper;
@@ -14,6 +16,9 @@ import com.yan.demo.javademo.service.StudentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -107,6 +112,13 @@ public class DemoServiceImpl implements DemoService {
             BuilderGenerator.generateByExcel(className, list);
         });
         return RResult.success(true);
+    }
+
+    @Override
+    public RResult<List<Area>> getAreaByPage(AreaAO area) {
+        long total = demoMapper.countArea(area);
+        List<Area> areas = demoMapper.queryAreaByLimit(area);
+        return RResult.success(areas,total);
     }
 
     @Scheduled(cron = "0 0/60 * * * ? ")

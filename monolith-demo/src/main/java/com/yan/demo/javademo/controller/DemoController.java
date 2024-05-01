@@ -2,16 +2,21 @@ package com.yan.demo.javademo.controller;
 
 
 import com.yan.demo.common.utils.RResult;
+import com.yan.demo.javademo.ao.AreaAO;
 import com.yan.demo.javademo.ao.RenameFileAO;
+import com.yan.demo.javademo.entity.Area;
 import com.yan.demo.javademo.service.DemoService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * @Author: sixcolor
@@ -40,4 +45,9 @@ public class DemoController extends AbstractController {
         return RResult.success(demoService.generateBuilderByExcel(file).getData());
     }
 
+    @ApiOperation(value = "获取区域")
+    @GetMapping("/getArea")
+    public RResult<List<Area>> getArea(AreaAO area) {
+        return demoService.getAreaByPage(area);
+    }
 }

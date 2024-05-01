@@ -10,8 +10,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.concurrent.TimeUnit;
-
 /**
  * @Author: sixcolor
  * @Date: 2024-04-18 15:15
@@ -26,18 +24,9 @@ public class StudentServiceImpl implements StudentService {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
-    public void setValue(String key, Object value) {
-        redisTemplate.opsForValue().set(key, value);
-    }
-
-    public Object getValue(String key) {
-        return redisTemplate.opsForValue().get(key);
-    }
-
     @Override
     @Transactional
     public int addStudent(Student student) {
-        redisTemplate.opsForValue().set("aas", "AAB", 60, TimeUnit.SECONDS);
         Long nextId = redisUtil.getNextId(RedisConstant.STUDENT_ID_NEXT);
         return studentMapper.addStudent(Student.builder()
                 .SID(String.valueOf(nextId))

@@ -11,35 +11,39 @@ public class RResult<T> implements Serializable {
     private String code;
     private String message;
     private T data;
+    private long total;
 
     public RResult() {
     }
 
     public RResult(HttpStatus status) {
-        this(HttpStatus.SUCCESS.getCode(), HttpStatus.SUCCESS.getMessage(), null);
+        this(HttpStatus.SUCCESS.getCode(), HttpStatus.SUCCESS.getMessage(), null, 0);
     }
 
     public RResult(String code, T data) {
-        this(code, null, data);
+        this(code, null, data, 0);
     }
 
     public RResult(String code, String message) {
-        this(code, message, null);
+        this(code, message, null, 0);
     }
 
-    public RResult(String code, String message, T data) {
+    public RResult(String code, String message, T data, long total) {
         this.code = code;
         this.message = message;
         this.data = data;
+        this.total = total;
     }
 
-
     public static <T> RResult<T> success(T data) {
-        return new RResult<>(HttpStatus.SUCCESS.getCode(), HttpStatus.SUCCESS.getMessage(), data);
+        return new RResult<>(HttpStatus.SUCCESS.getCode(), HttpStatus.SUCCESS.getMessage(), data, 0);
+    }
+    public static <T> RResult<T> success(T data,long total) {
+        return new RResult<>(HttpStatus.SUCCESS.getCode(), HttpStatus.SUCCESS.getMessage(), data, total);
     }
 
     public static <T> RResult<T> create(T data) {
-        return new RResult<>(HttpStatus.CREATED.getCode(), HttpStatus.CREATED.getMessage(), data);
+        return new RResult<>(HttpStatus.CREATED.getCode(), HttpStatus.CREATED.getMessage(), data, 0);
     }
 
     public RResult<T> success(String code, T data) {
@@ -60,7 +64,7 @@ public class RResult<T> implements Serializable {
     }
 
     public static <T> RResult<T> failed() {
-        return new RResult<>(HttpStatus.FAILED.getCode(), HttpStatus.FAILED.getMessage(), null);
+        return new RResult<>(HttpStatus.FAILED.getCode(), HttpStatus.FAILED.getMessage(), null, 0);
     }
 
     public RResult<T> fail(String code, String message) {
@@ -78,11 +82,11 @@ public class RResult<T> implements Serializable {
     }
 
     public static <T> RResult<T> notFound() {
-        return new RResult<>(HttpStatus.NOT_FOUND.getCode(), HttpStatus.NOT_FOUND.getMessage(), null);
+        return new RResult<>(HttpStatus.NOT_FOUND.getCode(), HttpStatus.NOT_FOUND.getMessage(), null, 0);
     }
 
     public static <T> RResult<T> notFound(String message) {
-        return new RResult<>(HttpStatus.NOT_FOUND.getCode(), message, null);
+        return new RResult<>(HttpStatus.NOT_FOUND.getCode(), message, null, 0);
     }
 
     public String getCode() {
@@ -97,12 +101,21 @@ public class RResult<T> implements Serializable {
         return data;
     }
 
+    public long getTotal() {
+        return total;
+    }
+
+    public void setTotal(long total) {
+        this.total = total;
+    }
+
     @Override
     public String toString() {
         return "RResult{" +
                 "code='" + code + '\'' +
                 ", message='" + message + '\'' +
                 ", data=" + data +
+                ", total=" + total +
                 '}';
     }
 }

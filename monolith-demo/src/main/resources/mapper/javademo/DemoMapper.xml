@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.yan.demo.javademo.mapper.DemoMapper">
+
+    <!--分页查询指定行数据-->
+    <select id="queryAreaByLimit" resultType="com.yan.demo.javademo.entity.Area">
+        select
+        ID,PARENT_ID,CODE,NAME,LEVEL
+        from AREA
+        <where>
+            <if test="id != null and id != ''">
+                and ID = #{id}
+            </if>
+            <if test="parentId != null and parentId != ''">
+                and PARENT_ID = #{parentId}
+            </if>
+            <if test="code != null and code != ''">
+                and CODE = #{code}
+            </if>
+            <if test="name != null and name != ''">
+                and NAME = #{name}
+            </if>
+            <if test="level != null and level != ''">
+                and LEVEL = #{level}
+            </if>
+        </where>
+        limit #{pageNo}, #{pageSize}
+    </select>
+
+    <!--统计总行数-->
+    <select id="countArea" resultType="java.lang.Long">
+        select count(1)
+        from AREA
+        <where>
+            <if test="id != null and id != ''">
+                and ID = #{id}
+            </if>
+            <if test="parentId != null and parentId != ''">
+                and PARENT_ID = #{parentId}
+            </if>
+            <if test="code != null and code != ''">
+                and CODE = #{code}
+            </if>
+            <if test="name != null and name != ''">
+                and NAME = #{name}
+            </if>
+            <if test="level != null and level != ''">
+                and LEVEL = #{level}
+            </if>
+        </where>
+    </select>
+</mapper>
