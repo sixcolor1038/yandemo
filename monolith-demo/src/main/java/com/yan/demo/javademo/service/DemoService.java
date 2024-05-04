@@ -2,10 +2,9 @@ package com.yan.demo.javademo.service;
 
 import com.yan.demo.common.utils.RResult;
 import com.yan.demo.javademo.ao.AreaAO;
+import com.yan.demo.javademo.ao.BandwidthAO;
 import com.yan.demo.javademo.ao.RenameFileAO;
 import com.yan.demo.javademo.entity.Area;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -28,5 +27,7 @@ public interface DemoService {
      * @param area 筛选条件
      * @return 查询结果
      */
-    RResult<List<Area>> getAreaByPage(AreaAO area);
+    RResult<List<Area>> getAreaToTree(AreaAO area);
+
+    RResult<List<Area>> bandwidthConversion(BandwidthAO ao);
 }

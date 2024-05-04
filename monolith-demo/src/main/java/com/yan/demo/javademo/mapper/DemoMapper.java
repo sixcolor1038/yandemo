@@ -20,7 +20,7 @@ public interface DemoMapper {
      * @param area 查询条件
      * @return 对象列表
      */
-    List<Area> queryAreaByLimit(AreaAO area);
+    List<Area> queryArea(AreaAO area);
 
     /**
      * 统计总行数

@@ -5,6 +5,7 @@ import com.yan.demo.common.constant.NumberConstant;
 import com.yan.demo.common.utils.*;
 import com.yan.demo.common.utils.generator.BuilderGenerator;
 import com.yan.demo.javademo.ao.AreaAO;
+import com.yan.demo.javademo.ao.BandwidthAO;
 import com.yan.demo.javademo.ao.RenameFileAO;
 import com.yan.demo.javademo.entity.Area;
 import com.yan.demo.javademo.entity.CommonRec;
@@ -16,9 +17,6 @@ import com.yan.demo.javademo.service.StudentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -74,22 +72,13 @@ public class DemoServiceImpl implements DemoService {
     }
 
     public void updateCommonRec(int count) {
-        CommonRec build = CommonRec.builder()
-                .id(1L)
-                .name("视图数量")
-                .value(String.valueOf(count))
-                .build();
+        CommonRec build = CommonRec.builder().id(1L).name("视图数量").value(String.valueOf(count)).build();
         commonMapper.updateCommonRec(build);
     }
 
 
     public void addStudent() {
-        Student student = Student.builder()
-                .SID(null)
-                .SName(RandomGeneratorUtils.generateRandomName())
-                .SSex(System.currentTimeMillis() % 2 == 0 ? "男" : "女")
-                .SBirth(RandomGeneratorUtils.generateRandomAge())
-                .build();
+        Student student = Student.builder().SID(null).SName(RandomGeneratorUtils.generateRandomName()).SSex(System.currentTimeMillis() % 2 == 0 ? "男" : "女").SBirth(RandomGeneratorUtils.generateRandomAge()).build();
         studentService.addStudent(student);
     }
 
@@ -99,8 +88,7 @@ public class DemoServiceImpl implements DemoService {
         int num = 1;
         List<List<String>> excelData = ExcelUtils.readExcelFile(num, file.getInputStream());
         log.info("读取excel数据:{}", excelData);
-        Map<String, List<List<String>>> groupedByClassName = excelData.stream()
-                .collect(Collectors.groupingBy(list -> list.get(0)));
+        Map<String, List<List<String>>> groupedByClassName = excelData.stream().collect(Collectors.groupingBy(list -> list.get(0)));
         groupedByClassName.forEach((className, fields) -> {
             List<BuilderGenerator.Field> list = new ArrayList<>();
             fields.forEach(x -> {
@@ -115,10 +103,14 @@ public class DemoServiceImpl implements DemoService {
     }
 
     @Override
-    public RResult<List<Area>> getAreaByPage(AreaAO area) {
+    public RResult<List<Area>> getAreaToTree(AreaAO area) {
+        // 首先查询总数用于分页
         long total = demoMapper.countArea(area);
-        List<Area> areas = demoMapper.queryAreaByLimit(area);
-        return RResult.success(areas,total);
+        // 查询当前页的地区列表
+        List<Area> areas = demoMapper.queryArea(area);
+        // 将结果转为tree
+        List<Area> roots = TreeUtils.convertToTree(areas, Area::getId, Area::getParentId, Area::addChild);
+        return RResult.success(roots, total);
     }
 
     @Scheduled(cron = "0 0/60 * * * ? ")
@@ -162,6 +154,13 @@ public class DemoServiceImpl implements DemoService {
             return;
         }
         RResult.ok();
+    }
+
+
+    @Override
+    public RResult<List<Area>> bandwidthConversion(BandwidthAO ao) {
+
+        return null;
     }
 
 }

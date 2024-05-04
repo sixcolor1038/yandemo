@@ -1,5 +1,6 @@
 package com.yan.demo.javademo.entity;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Area {
@@ -129,5 +130,13 @@ public class Area {
             return new Area(this);
         }
 
+    }
+
+
+    public void addChild(Area child) {
+        if (areas == null) {
+            areas = new ArrayList<>();
+        }
+        areas.add(child);
     }
 }

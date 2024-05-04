@@ -30,6 +30,11 @@ public class WebLogAspect {
         HttpServletRequest request = Optional.ofNullable(attributes).map(ServletRequestAttributes::getRequest).orElse(null);
 
         if (request != null) {
+            String ipAddress = request.getHeader("X-Forwarded-For");
+            if (ipAddress == null || ipAddress.isEmpty()) {
+                ipAddress = request.getRemoteAddr();
+            }
+            log.info("请求IP: {}", ipAddress);
             log.info("请求URL: {}", request.getRequestURL());
             log.info("HTTP 方法: {}", request.getMethod());
             log.info("类 方法: {}", joinPoint.getSignature().getDeclaringTypeName() + "." + joinPoint.getSignature().getName());

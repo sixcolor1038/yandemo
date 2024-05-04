@@ -3,7 +3,7 @@
 <mapper namespace="com.yan.demo.javademo.mapper.DemoMapper">
 
     <!--分页查询指定行数据-->
-    <select id="queryAreaByLimit" resultType="com.yan.demo.javademo.entity.Area">
+    <select id="queryArea" resultType="com.yan.demo.javademo.entity.Area">
         select
         ID,PARENT_ID,CODE,NAME,LEVEL
         from AREA
@@ -24,7 +24,6 @@
                 and LEVEL = #{level}
             </if>
         </where>
-        limit #{pageNo}, #{pageSize}
     </select>
 
     <!--统计总行数-->
