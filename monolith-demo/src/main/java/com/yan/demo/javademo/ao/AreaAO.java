@@ -69,6 +69,8 @@ public class AreaAO extends BaseEntity {
                 "code='" + code + '\'' +
                 "name='" + name + '\'' +
                 "level='" + level + '\'' +
+                "pageNo='" + getPageNo() + '\'' +
+                "pageSize='" + getPageSize() + '\'' +
                 '}';
     }
 

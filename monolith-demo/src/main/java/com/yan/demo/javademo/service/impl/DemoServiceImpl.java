@@ -1,7 +1,10 @@
 package com.yan.demo.javademo.service.impl;
 
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import com.yan.demo.common.constant.DateConstant;
 import com.yan.demo.common.constant.NumberConstant;
+import com.yan.demo.common.transfer.ObjectTransfer;
 import com.yan.demo.common.utils.*;
 import com.yan.demo.common.utils.generator.BuilderGenerator;
 import com.yan.demo.javademo.ao.AreaAO;
@@ -78,7 +81,12 @@ public class DemoServiceImpl implements DemoService {
 
 
     public void addStudent() {
-        Student student = Student.builder().SID(null).SName(RandomGeneratorUtils.generateRandomName()).SSex(System.currentTimeMillis() % 2 == 0 ? "男" : "女").SBirth(RandomGeneratorUtils.generateRandomAge()).build();
+        Student student = Student.builder()
+                .SID(null)
+                .SName(RandomGeneratorUtils.generateRandomName())
+                .SSex(System.currentTimeMillis() % 2 == 0 ? "男" : "女")
+                .SBirth(RandomGeneratorUtils.generateRandomAge())
+                .build();
         studentService.addStudent(student);
     }
 
@@ -88,7 +96,8 @@ public class DemoServiceImpl implements DemoService {
         int num = 1;
         List<List<String>> excelData = ExcelUtils.readExcelFile(num, file.getInputStream());
         log.info("读取excel数据:{}", excelData);
-        Map<String, List<List<String>>> groupedByClassName = excelData.stream().collect(Collectors.groupingBy(list -> list.get(0)));
+        Map<String, List<List<String>>> groupedByClassName = excelData.stream()
+                .collect(Collectors.groupingBy(list -> list.get(0)));
         groupedByClassName.forEach((className, fields) -> {
             List<BuilderGenerator.Field> list = new ArrayList<>();
             fields.forEach(x -> {
@@ -108,9 +117,46 @@ public class DemoServiceImpl implements DemoService {
         long total = demoMapper.countArea(area);
         // 查询当前页的地区列表
         List<Area> areas = demoMapper.queryArea(area);
+        areaPageByPageHelper(area);
+        areaPageByStream(areas, area);
+        areaPageBySql(area);
         // 将结果转为tree
         List<Area> roots = TreeUtils.convertToTree(areas, Area::getId, Area::getParentId, Area::addChild);
         return RResult.success(roots, total);
+    }
+
+    private void areaPageByStream(List<Area> list, AreaAO area) {
+        List<Area> collect = list.stream()
+                .skip((long) (area.getPageNo() - 1) * area.getPageSize())
+                .limit(area.getPageSize())
+                .collect(Collectors.toList());
+        log.info("通过stream流进行分页:{}", collect);
+    }
+
+    private void areaPageBySql(AreaAO area) {
+        area.setPageNo((area.getPageNo() - 1) * area.getPageSize());
+        // 查询当前页的地区列表
+        List<Area> areas = demoMapper.queryAreaByLimit(area);
+        log.info("通过sql进行分页:{}", areas);
+    }
+
+    private void areaPageByPageHelper(AreaAO area) {
+        // 使用入参中的页码和页面大小设置分页信息
+        PageHelper.startPage(area.getPageNo(), area.getPageSize());
+        // 查询当前页的地区列表
+        List<Area> areas = demoMapper.queryArea(area);
+
+        // 将查询结果封装成PageInfo对象
+        PageInfo<Area> pageInfo = new PageInfo<>(areas);
+        // 获取分页信息
+        List<Area> list = pageInfo.getList(); // 当前页的数据列表
+        int pageSize = pageInfo.getPageSize(); // 每页大小
+        int pageNum = pageInfo.getPageNum(); // 当前页码
+        long total = pageInfo.getTotal(); // 总记录数
+        List<Area> areaList = ObjectTransfer.convertListToList(areas);
+        // 输出日志
+        log.info("获取当前页:{}", list);
+        log.info("根据PageHelper进行分页: 当前页码={}, 每页大小={}, 总记录数={}, 当前页数据={}", pageNum, pageSize, total, areaList);
     }
 
     @Scheduled(cron = "0 0/60 * * * ? ")

@@ -13,14 +13,20 @@ import java.util.List;
  */
 @Mapper
 public interface DemoMapper {
-
+    /**
+     * 查询指定行数据
+     *
+     * @param area 查询条件
+     * @return 对象列表
+     */
+    List<Area> queryArea(AreaAO area);
     /**
      * 分页查询指定行数据
      *
      * @param area 查询条件
      * @return 对象列表
      */
-    List<Area> queryArea(AreaAO area);
+    List<Area> queryAreaByLimit(AreaAO area);
 
     /**
      * 统计总行数
