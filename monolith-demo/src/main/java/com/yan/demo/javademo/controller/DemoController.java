@@ -55,4 +55,10 @@ public class DemoController extends AbstractController {
     public RResult<List<Area>> bandwidthConversion(BandwidthAO ao) {
         return demoService.bandwidthConversion(ao);
     }
+
+    @ApiOperation(value = "redisDemo")
+    @GetMapping("/redisDemo")
+    public RResult<Boolean> redisDemo() {
+        return demoService.redisDemo();
+    }
 }

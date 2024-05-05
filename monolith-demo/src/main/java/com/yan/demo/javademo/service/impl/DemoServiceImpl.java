@@ -20,6 +20,7 @@ import com.yan.demo.javademo.service.StudentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -47,7 +49,7 @@ public class DemoServiceImpl implements DemoService {
     @Autowired
     private CommonMapper commonMapper;
     @Autowired
-    private RedisUtils redisUtil;
+    private RedisTemplate<String, Object> redisTemplate;
 
     @Override
     public RResult<Boolean> renameFile(RenameFileAO ao) {
@@ -206,6 +208,31 @@ public class DemoServiceImpl implements DemoService {
     @Override
     public RResult<List<Area>> bandwidthConversion(BandwidthAO ao) {
 
+        return null;
+    }
+
+    @Override
+    public RResult<Boolean> redisDemo() {
+        // 设置值
+        redisTemplate.opsForValue().set("key_2024_05_05", "valueA");
+
+        // 获取值
+        Object value = redisTemplate.opsForValue().get("key_2024_05_05");
+        log.info("键的值为:{}", value);
+
+        // 设置带过期时间的值
+        redisTemplate.opsForValue().set("keyWithExpiration20240505", "valueWithExpiration", 60, TimeUnit.SECONDS);
+
+        // 获取剩余过期时间
+        Long ttl = redisTemplate.getExpire("keyWithExpiration20240505");
+        log.info("键keyWithExpiration20240505的剩余过期时间:{}秒", ttl);
+
+        // 删除键
+        redisTemplate.delete("key_2024_05_05");
+
+        // 检查键是否存在
+        boolean exists = Boolean.TRUE.equals(redisTemplate.hasKey("key_2024_05_05"));
+        log.info("键是否存在:{}", exists);
         return null;
     }
 

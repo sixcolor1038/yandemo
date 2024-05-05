@@ -30,4 +30,6 @@ public interface DemoService {
     RResult<List<Area>> getAreaToTree(AreaAO area);
 
     RResult<List<Area>> bandwidthConversion(BandwidthAO ao);
+
+    RResult<Boolean> redisDemo();
 }
