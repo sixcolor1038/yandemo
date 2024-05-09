@@ -41,14 +41,14 @@ public class ExcelUtils {
 
     }
 
+    /**
+     * 参数 append 是用来指定是否向现有的 Excel 文件中追加数据。
+     * 如果将其设置为 true，则新的数据将被追加到现有的 Excel 文件中；
+     * 如果设置为 false，则将创建一个新的 Excel 文件并写入数据。
+     * 这样可以在需要将数据分批次写入到同一个 Excel 文件时很有用，
+     * 比如在多次执行导出操作时，将数据添加到同一个文件中而不覆盖之前的数据。
+     */
     public static void exportToExcel(List<List<Object>> data, String filePath, String sheetName, boolean append) {
-        /**
-         * 参数 append 是用来指定是否向现有的 Excel 文件中追加数据。
-         * 如果将其设置为 true，则新的数据将被追加到现有的 Excel 文件中；
-         * 如果设置为 false，则将创建一个新的 Excel 文件并写入数据。
-         * 这样可以在需要将数据分批次写入到同一个 Excel 文件时很有用，
-         * 比如在多次执行导出操作时，将数据添加到同一个文件中而不覆盖之前的数据。
-         */
         try (Workbook workbook = append ? WorkbookFactory.create(true) : new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet(sheetName);
 

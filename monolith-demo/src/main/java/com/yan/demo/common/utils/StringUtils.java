@@ -40,4 +40,18 @@ public class StringUtils {
         }
         return characters;
     }
+
+    /**
+     * 使用逗号作为分隔符来分割字符串，并返回一个字符串数组。
+     * 如果字符串以逗号结尾，不会包含由尾随逗号产生的空字符串。
+     *
+     * @param str 要分割的字符串
+     * @return 根据逗号分割的字符串数组。如果输入是null，返回一个空数组。
+     */
+    public static String[] splitStrByComma(String str) {
+        if (str == null) {
+            return new String[0];
+        }
+        return str.split(",\\s*");
+    }
 }
