@@ -5,8 +5,10 @@ import com.yan.demo.javademo.ao.AreaAO;
 import com.yan.demo.javademo.ao.BandwidthAO;
 import com.yan.demo.javademo.ao.RenameFileAO;
 import com.yan.demo.javademo.entity.Area;
+import com.yan.demo.javademo.entity.CommonRec;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 
@@ -32,4 +34,6 @@ public interface DemoService {
     RResult<List<Area>> bandwidthConversion(BandwidthAO ao);
 
     RResult<Boolean> redisDemo();
+
+    void downloadPDF(CommonRec rec, HttpServletResponse response) throws IOException;
 }

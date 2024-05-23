@@ -38,7 +38,8 @@ public class RResult<T> implements Serializable {
     public static <T> RResult<T> success(T data) {
         return new RResult<>(HttpStatus.SUCCESS.getCode(), HttpStatus.SUCCESS.getMessage(), data, 0);
     }
-    public static <T> RResult<T> success(T data,long total) {
+
+    public static <T> RResult<T> success(T data, long total) {
         return new RResult<>(HttpStatus.SUCCESS.getCode(), HttpStatus.SUCCESS.getMessage(), data, total);
     }
 
@@ -67,10 +68,9 @@ public class RResult<T> implements Serializable {
         return new RResult<>(HttpStatus.FAILED.getCode(), HttpStatus.FAILED.getMessage(), null, 0);
     }
 
-    public RResult<T> fail(String code, String message) {
-        this.code = code;
-        this.message = message;
-        return this;
+    public static <T> RResult<T> fail(String code, String message) {
+
+        return new RResult<>(code, message);
     }
 
     public static <T> RResult<T> fail(T message) {

@@ -2,6 +2,11 @@ package com.yan.demo.javademo.service.impl;
 
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import com.itextpdf.text.*;
+import com.itextpdf.text.pdf.BaseFont;
+import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
 import com.yan.demo.common.constant.DateConstant;
 import com.yan.demo.common.constant.NumberConstant;
 import com.yan.demo.common.transfer.ObjectTransfer;
@@ -26,8 +31,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -234,6 +241,310 @@ public class DemoServiceImpl implements DemoService {
         boolean exists = Boolean.TRUE.equals(redisTemplate.hasKey("key_2024_05_05"));
         log.info("键是否存在:{}", exists);
         return null;
+    }
+
+    @Override
+    public void downloadPDF(CommonRec rec, HttpServletResponse response) throws IOException {
+        CommonRec commonRec = new CommonRec();
+        commonRec.setCode("000");
+        commonRec.setName("vds");
+        commonRec.setId(1223L);
+        commonRec.setValue("22");
+        Font titlefont;
+        Font headfont;
+        Font keyfont = null;
+        Font textfont = null;
+        Font content = null;
+
+        try {
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            titlefont = new Font(bfChinese, 16, Font.BOLD);
+            headfont = new Font(bfChinese, 14, Font.BOLD);
+            keyfont = new Font(bfChinese, 10, Font.BOLD);
+            textfont = new Font(bfChinese, 15, Font.NORMAL);
+            content = new Font(bfChinese, 10, Font.NORMAL);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        BaseFont bf;
+        Font font = null;
+        try {
+            bf = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            font = new Font(bf, 20, Font.BOLD, BaseColor.BLACK);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        Document document = new Document(new RectangleReadOnly(842F, 595F));
+        document.setMargins(60, 60, 72, 72);
+        try {
+            PdfWriter writer = PdfWriter.getInstance(document, response.getOutputStream());
+            writer.setPageEvent(new PdfPageUtil());
+            document.open();
+
+            Paragraph paragraph = new Paragraph("备案回执", font);
+            paragraph.setAlignment(1);
+            document.add(paragraph);
+
+            float[] widths = {25f, 25f, 25f, 25f, 25f, 25f};
+            PdfPTable table = new PdfPTable(widths);
+            table.setSpacingBefore(20f);
+            table.setWidthPercentage(100.0F);
+            table.setHeaderRows(1);
+            table.getDefaultCell().setHorizontalAlignment(1);
+            PdfPCell cell = null;
+
+            cell = new PdfPCell(new Paragraph("备案编码", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setFixedHeight(30);
+            table.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph(commonRec.getCode()));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph("备案时间", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table.addCell(cell);
+
+//            cell = new PdfPCell(new Paragraph(CheckVerifyUtil.dateToString4(commonRec.getId())));
+//            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+//            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+//            table.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph("申请备案单位", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph(commonRec.getName(), content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph("作业库点", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setFixedHeight(30);
+            table.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph(commonRec.getType(), content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph("负责人", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph(commonRec.getValue(), content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph("联系电话", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph(commonRec.getType(), content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph("单据状态", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setFixedHeight(30);
+            table.addCell(cell);
+
+//            cell = new PdfPCell(new Paragraph(shzt(commonRec.getId()), content));
+//            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+//            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+//            table.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph("审核时间", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table.addCell(cell);
+
+//            cell = new PdfPCell(new Paragraph(CheckVerifyUtil.dateToString5(commonRec.getType()), content));
+//            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+//            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+//            table.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph(" ", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph(" ", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table.addCell(cell);
+
+            float[] widths2 = {25f, 25f, 25f, 25f, 25f, 25f};
+            PdfPTable table2 = new PdfPTable(widths2);
+            table2.setSpacingBefore(20f);
+            table2.setWidthPercentage(100.0F);
+            table2.setHeaderRows(1);
+            table2.getDefaultCell().setHorizontalAlignment(1);
+
+            cell = new PdfPCell(new Paragraph("姓名", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setFixedHeight(20);
+            table2.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph("职务", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table2.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph("职业资格", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table2.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph("身体状况", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table2.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph("熏蒸任务分工", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table2.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph("是否外包", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table2.addCell(cell);
+
+//            if (commonRec.getPeoples().size() > 0) {
+//                for (RecordFumigationPeople prople : commonRec.getPeoples()) {
+//                    PdfPCell cell1 = new PdfPCell(new Paragraph(prople.getXm(), content));
+//                    PdfPCell cell2 = new PdfPCell(new Paragraph(prople.getZw(), content));
+//                    PdfPCell cell3 = new PdfPCell(new Paragraph(prople.getZyzg(), content));
+//                    PdfPCell cell4 = new PdfPCell(new Paragraph(prople.getStzk(), content));
+//                    PdfPCell cell5 = new PdfPCell(new Paragraph(prople.getXzrwfg(), content));
+//                    PdfPCell cell6 = new PdfPCell(new Paragraph(prople.getSfwb(), content));
+//
+//                    cell1.setHorizontalAlignment(Element.ALIGN_CENTER);
+//                    cell1.setVerticalAlignment(Element.ALIGN_MIDDLE);
+//                    cell1.setFixedHeight(20);
+//                    cell2.setHorizontalAlignment(Element.ALIGN_CENTER);
+//                    cell2.setVerticalAlignment(Element.ALIGN_MIDDLE);
+//                    cell3.setHorizontalAlignment(Element.ALIGN_CENTER);
+//                    cell3.setVerticalAlignment(Element.ALIGN_MIDDLE);
+//                    cell4.setHorizontalAlignment(Element.ALIGN_CENTER);
+//                    cell4.setVerticalAlignment(Element.ALIGN_MIDDLE);
+//                    cell5.setHorizontalAlignment(Element.ALIGN_CENTER);
+//                    cell5.setVerticalAlignment(Element.ALIGN_MIDDLE);
+//                    cell6.setHorizontalAlignment(Element.ALIGN_CENTER);
+//                    cell6.setVerticalAlignment(Element.ALIGN_MIDDLE);
+//
+//                    table2.addCell(cell1);
+//                    table2.addCell(cell2);
+//                    table2.addCell(cell3);
+//                    table2.addCell(cell4);
+//                    table2.addCell(cell5);
+//                    table2.addCell(cell6);
+//                }
+//            }
+
+            float[] widths3 = {25f, 25f, 25f, 25f, 25f};
+            PdfPTable table3 = new PdfPTable(widths3);
+            table3.setSpacingBefore(20f);
+            table3.setWidthPercentage(100.0F);
+            table3.setHeaderRows(1);
+            table3.getDefaultCell().setHorizontalAlignment(1);
+
+            cell = new PdfPCell(new Paragraph("仓房", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setFixedHeight(20);
+            table3.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph("货位", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table3.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph("粮食品种", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table3.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph("计划开始时间", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table3.addCell(cell);
+
+            cell = new PdfPCell(new Paragraph("计划结束时间", content));
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table3.addCell(cell);
+
+//            if (commonRec.getType().size() > 0) {
+//                for (CommonRec dtl : commonRec.g()) {
+//                    PdfPCell cell1 = new PdfPCell(new Paragraph(dtl.getCfmc(), content));
+//                    PdfPCell cell2 = new PdfPCell(new Paragraph(dtl.getHwmc(), content));
+//                    PdfPCell cell3 = new PdfPCell(new Paragraph(dtl.getLspzmc(), content));
+//                    PdfPCell cell4 = new PdfPCell(new Paragraph(CheckVerifyUtil.dateToString4(dtl.getJhxzksrq()), content));
+//                    PdfPCell cell5 = new PdfPCell(new Paragraph(CheckVerifyUtil.dateToString4(dtl.getJhxzjsrq()), content));
+//                    cell1.setHorizontalAlignment(Element.ALIGN_CENTER);
+//                    cell1.setVerticalAlignment(Element.ALIGN_MIDDLE);
+//                    cell1.setFixedHeight(20);
+//
+//                    cell2.setHorizontalAlignment(Element.ALIGN_CENTER);
+//                    cell2.setVerticalAlignment(Element.ALIGN_MIDDLE);
+//
+//                    cell3.setHorizontalAlignment(Element.ALIGN_CENTER);
+//                    cell3.setVerticalAlignment(Element.ALIGN_MIDDLE);
+//
+//                    cell4.setHorizontalAlignment(Element.ALIGN_CENTER);
+//                    cell4.setVerticalAlignment(Element.ALIGN_MIDDLE);
+//
+//                    cell5.setHorizontalAlignment(Element.ALIGN_CENTER);
+//                    cell5.setVerticalAlignment(Element.ALIGN_MIDDLE);
+//
+//                    table3.addCell(cell1);
+//                    table3.addCell(cell2);
+//                    table3.addCell(cell3);
+//                    table3.addCell(cell4);
+//                    table3.addCell(cell5);
+//                }
+//            }
+
+            document.add(new Paragraph("\n"));
+            document.add(new Paragraph("▋ 基本信息", content));
+            document.add(new Paragraph("\n"));
+
+            document.add(table);
+
+            document.add(new Paragraph("\n"));
+            document.add(new Paragraph("▋ 人员信息", content));
+            document.add(new Paragraph("\n"));
+
+            document.add(table2);
+
+            document.add(new Paragraph("\n"));
+            document.add(new Paragraph("▋ 作业储粮粮情", content));
+            document.add(new Paragraph("\n"));
+
+            document.add(table3);
+            document.close();
+        } catch (DocumentException e) {
+            log.info("导出pdf失败:{}", e);
+            e.printStackTrace();
+        }
     }
 
 }
