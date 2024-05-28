@@ -7,8 +7,6 @@ import com.itextpdf.text.pdf.BaseFont;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
-import com.yan.demo.common.constant.DateConstant;
-import com.yan.demo.common.constant.NumberConstant;
 import com.yan.demo.common.transfer.ObjectTransfer;
 import com.yan.demo.common.utils.*;
 import com.yan.demo.common.utils.generator.BuilderGenerator;
@@ -26,14 +24,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -72,20 +67,18 @@ public class DemoServiceImpl implements DemoService {
             //统计文件数量
             Map<String, Object> stats = FileUtils.countFilesAndFolders(ao.getPath(), ao.isIncludeSubdirectories());
             FileUtils.printStatistics(stats, 0);
-            Map<String, Integer> counted = MapUtils.countMapByKey(stats, Arrays.asList("jpg", "png"));
+            Map<String, Integer> counted = MapUtils.countMapByKey(stats, Arrays.asList("jpg", "png", "jpeg"));
             int count = 0;
             count += ObjectUtils.objectToInt(counted.get("jpg"));
             count += ObjectUtils.objectToInt(counted.get("png"));
+            count += ObjectUtils.objectToInt(counted.get("jpeg"));
             log.info("图片数量：{}", count);
-            updateCommonRec(count);
+            commonMapper.updateCommonRec(CommonRec
+                    .builder().id(1L).name("视图数量").value(String.valueOf(count)).build());
+
         }
         addStudent();
         return RResult.success(true);
-    }
-
-    public void updateCommonRec(int count) {
-        CommonRec build = CommonRec.builder().id(1L).name("视图数量").value(String.valueOf(count)).build();
-        commonMapper.updateCommonRec(build);
     }
 
 
@@ -118,6 +111,11 @@ public class DemoServiceImpl implements DemoService {
             BuilderGenerator.generateByExcel(className, list);
         });
         return RResult.success(true);
+    }
+
+    @Override
+    public RResult<CommonRec> queryCommonRec(long id) {
+        return RResult.success(commonMapper.queryCommonRec(CommonRec.builder().id(id).build()));
     }
 
     @Override
@@ -167,50 +165,6 @@ public class DemoServiceImpl implements DemoService {
         log.info("获取当前页:{}", list);
         log.info("根据PageHelper进行分页: 当前页码={}, 每页大小={}, 总记录数={}, 当前页数据={}", pageNum, pageSize, total, areaList);
     }
-
-    @Scheduled(cron = "0 0/60 * * * ? ")
-    @Transactional(rollbackFor = Exception.class)
-    public void updateImageCount() {
-        CommonRec commonRec = commonMapper.queryCommonRec(CommonRec.builder().id(2L).build());
-        checkCommonRec(commonRec);
-        RenameFileAO ao = new RenameFileAO();
-        ao.setPath(commonRec.getValue());
-        ao.setIncludeSubdirectories(true);
-        ao.setType(NumberConstant.STR_THREE);
-        ao.setPrefixes(Arrays.asList(commonRec.getRemark().split(",")));
-        //统计文件数量
-        Map<String, Object> stats = FileUtils.countFilesAndFolders(ao.getPath(), ao.isIncludeSubdirectories());
-        FileUtils.printStatistics(stats, 0);
-        Map<String, Integer> counted = MapUtils.countMapByKey(stats, Arrays.asList("jpg", "png", "gif", "mp4"));
-        int count = 0;
-        count += ObjectUtils.objectToInt(counted.get("jpg"));
-        count += ObjectUtils.objectToInt(counted.get("png"));
-        count += ObjectUtils.objectToInt(counted.get("gif"));
-        count += ObjectUtils.objectToInt(counted.get("mp4"));
-        log.info("数量：{}", count);
-        updateCommonRec(count);
-        log.info("入参:{}", ao);
-        FileUtils.renameFilesInDirectory(ao.getPath(), ao.getPrefixes());
-        FileUtils.renameFilesWithTimestamp(ao.getPath());
-        autoRename();
-        log.info("文件重命名结束,结束时间:{}", LocalDateTime.now().format(DateConstant.DATE_TIME_FORMAT));
-    }
-
-    public void autoRename() {
-        CommonRec commonRec = commonMapper.queryCommonRec(CommonRec.builder().id(3L).build());
-        checkCommonRec(commonRec);
-        FileUtils.renameFilesInDirectory(commonRec.getValue(), Arrays.asList(commonRec.getRemark().split(",")));
-        FileUtils.renameFilesWithTimestamp(commonRec.getValue());
-    }
-
-    private void checkCommonRec(CommonRec commonRec) {
-        if (null == commonRec.getValue() || null == commonRec.getRemark()) {
-            RResult.failed();
-            return;
-        }
-        RResult.ok();
-    }
-
 
     @Override
     public RResult<List<Area>> bandwidthConversion(BandwidthAO ao) {

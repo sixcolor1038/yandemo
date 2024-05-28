@@ -68,6 +68,12 @@ public class DemoController extends AbstractController {
         return demoService.redisDemo();
     }
 
+        @ApiOperation(value = "根据id获取通用记录")
+    @GetMapping("commonRec/{id}")
+    public RResult<CommonRec> getCommonRec(@PathVariable long id){
+        return demoService.queryCommonRec(id);
+    }
+
     @ApiOperation(value = "pdf导出")
     @GetMapping("/downloadPDF")
     @SneakyThrows(Exception.class)

@@ -23,6 +23,8 @@ public interface DemoService {
 
     RResult<Boolean> generateBuilderByExcel(MultipartFile file) throws IOException;
 
+    RResult<CommonRec> queryCommonRec (long id);
+
     /**
      * 分页查询
      *
