@@ -68,10 +68,28 @@ public class DemoController extends AbstractController {
         return demoService.redisDemo();
     }
 
-        @ApiOperation(value = "根据id获取通用记录")
+    @ApiOperation(value = "根据id获取通用记录")
     @GetMapping("commonRec/{id}")
-    public RResult<CommonRec> getCommonRec(@PathVariable long id){
+    public RResult<CommonRec> getCommonRec(@PathVariable long id) {
         return demoService.queryCommonRec(id);
+    }
+
+    @ApiOperation(value = "创建通用记录")
+    @PostMapping("commonRec")
+    public RResult<CommonRec> createCommonRec(@RequestBody CommonRec commonRec) {
+        return demoService.createCommonRec(commonRec);
+    }
+
+    @ApiOperation(value = "更新通用记录")
+    @PutMapping("commonRec/{id}")
+    public RResult<CommonRec> updateCommonRec(@PathVariable long id, @RequestBody CommonRec commonRec) {
+        return demoService.updateCommonRec(id, commonRec);
+    }
+
+    @ApiOperation(value = "删除通用记录")
+    @DeleteMapping("commonRec/{id}")
+    public RResult<Boolean> deleteCommonRec(@PathVariable long id) {
+        return demoService.deleteCommonRec(id);
     }
 
     @ApiOperation(value = "pdf导出")

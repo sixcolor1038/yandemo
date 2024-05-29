@@ -1,5 +1,6 @@
 package com.yan.demo.common.utils;
 
+import com.yan.demo.common.exception.BusinessException;
 import com.yan.demo.javademo.entity.CommonRec;
 
 /**
@@ -14,5 +15,11 @@ public class CheckVerifyUtil {
             return;
         }
         RResult.ok();
+    }
+
+    public static <T> void checkIfExists(T object, String errorMessage) {
+        if (object == null) {
+            throw new BusinessException(errorMessage);
+        }
     }
 }

@@ -7,6 +7,7 @@ import com.itextpdf.text.pdf.BaseFont;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
+import com.yan.demo.common.constant.RedisConstant;
 import com.yan.demo.common.transfer.ObjectTransfer;
 import com.yan.demo.common.utils.*;
 import com.yan.demo.common.utils.generator.BuilderGenerator;
@@ -52,6 +53,8 @@ public class DemoServiceImpl implements DemoService {
     private CommonMapper commonMapper;
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+    @Autowired
+    private RedisUtils redisUtil;
 
     @Override
     public RResult<Boolean> renameFile(RenameFileAO ao) {
@@ -116,6 +119,32 @@ public class DemoServiceImpl implements DemoService {
     @Override
     public RResult<CommonRec> queryCommonRec(long id) {
         return RResult.success(commonMapper.queryCommonRec(CommonRec.builder().id(id).build()));
+    }
+
+    @Override
+    public RResult<CommonRec> createCommonRec(CommonRec commonRec) {
+        commonRec.setId(redisUtil.getNextId(RedisConstant.COMMON_ID_NEXT));
+        int i = commonMapper.addCommonRec(commonRec);
+        return RResult.handleResult(i, commonRec);
+    }
+
+    @Override
+    public RResult<CommonRec> updateCommonRec(long id, CommonRec commonRec) {
+        commonRec.setId(id);
+        checkCommRec(id);
+        int i = commonMapper.updateCommonRec(commonRec);
+        return RResult.handleResult(i, commonRec);
+    }
+
+    @Override
+    public RResult<Boolean> deleteCommonRec(long id) {
+        checkCommRec(id);
+        return RResult.success(commonMapper.deleteCommonRecById(id));
+    }
+
+    public void checkCommRec(long id) {
+        CommonRec commonRec = commonMapper.queryCommonRec(CommonRec.builder().id(id).build());
+        CheckVerifyUtil.checkIfExists(commonRec, "对象不存在,可能已被删除");
     }
 
     @Override

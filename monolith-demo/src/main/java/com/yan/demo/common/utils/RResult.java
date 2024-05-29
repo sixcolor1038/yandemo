@@ -89,6 +89,14 @@ public class RResult<T> implements Serializable {
         return new RResult<>(HttpStatus.NOT_FOUND.getCode(), message, null, 0);
     }
 
+    public static <T> RResult<T> handleResult(int result, T data) {
+        if (result > 0) {
+            return RResult.success(data);
+        } else {
+            return RResult.failed();
+        }
+    }
+
     public String getCode() {
         return code;
     }

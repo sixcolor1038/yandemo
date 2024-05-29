@@ -6,6 +6,8 @@ import com.yan.demo.javademo.ao.BandwidthAO;
 import com.yan.demo.javademo.ao.RenameFileAO;
 import com.yan.demo.javademo.entity.Area;
 import com.yan.demo.javademo.entity.CommonRec;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
@@ -23,7 +25,13 @@ public interface DemoService {
 
     RResult<Boolean> generateBuilderByExcel(MultipartFile file) throws IOException;
 
-    RResult<CommonRec> queryCommonRec (long id);
+    RResult<CommonRec> queryCommonRec(long id);
+
+    RResult<CommonRec> createCommonRec(@RequestBody CommonRec commonRec);
+
+    RResult<CommonRec> updateCommonRec(@PathVariable long id, @RequestBody CommonRec commonRec);
+
+    RResult<Boolean> deleteCommonRec(@PathVariable long id);
 
     /**
      * 分页查询

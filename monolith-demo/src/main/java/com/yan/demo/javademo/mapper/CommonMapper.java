@@ -11,10 +11,11 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface CommonMapper {
 
-    void addCommonRec(CommonRec rec);
+    int addCommonRec(CommonRec rec);
 
-    void updateCommonRec(CommonRec rec);
+    int updateCommonRec(CommonRec rec);
 
     CommonRec queryCommonRec(CommonRec rec);
 
+    boolean deleteCommonRecById(long id);
 }
