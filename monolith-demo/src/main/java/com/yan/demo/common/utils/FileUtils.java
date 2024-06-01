@@ -98,15 +98,15 @@ public class FileUtils {
                     String nameWithoutExtension = fileName.substring(0, i);
 
                     // 检查文件名是否已经是时间戳格式
-                    if (!DateConstant.TIMESTAMP_PATTERN.matcher(nameWithoutExtension).matches()) {
+                    if (!DateConstant.TIMESTAMP_PATTERN_MILLIS.matcher(nameWithoutExtension).matches()) {
                         // 生成新的文件名，使用当前时间的时间戳
-                        String timestamp = LocalDateTime.now().format(DateConstant.TIMESTAMP_FORMAT);
+                        String timestamp = LocalDateTime.now().format(DateConstant.TIMESTAMP_FORMAT_MILLIS);
                         File newFile = new File(directory, timestamp + extension);
 
                         // 确保文件名唯一，避免命名冲突
                         while (newFile.exists()) {
                             // 微调时间戳以保证唯一性
-                            timestamp = LocalDateTime.now().format(DateConstant.TIMESTAMP_FORMAT);
+                            timestamp = LocalDateTime.now().format(DateConstant.TIMESTAMP_FORMAT_MILLIS);
                             newFile = new File(directory, timestamp + extension);
                         }
 

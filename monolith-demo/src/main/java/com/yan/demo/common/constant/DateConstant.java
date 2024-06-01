@@ -35,8 +35,27 @@ public class DateConstant {
      */
     public static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
     /**
+     * 时间戳，精确到毫秒
+     */
+    public static final DateTimeFormatter TIMESTAMP_FORMAT_MILLIS = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
+
+    /**
+     * 时间戳，精确到纳秒
+     */
+    public static final DateTimeFormatter TIMESTAMP_FORMAT_NANOS = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSSSSSSSS");
+
+    /**
      * 时间戳格式
      */
     public static final Pattern TIMESTAMP_PATTERN = Pattern.compile("^\\d{14}$");
+    /**
+     * 时间戳格式，精确到毫秒
+     */
+    public static final Pattern TIMESTAMP_PATTERN_MILLIS = Pattern.compile("^\\d{17}$");
+
+    /**
+     * 时间戳格式，精确到毫秒
+     */
+    public static final Pattern TIMESTAMP_PATTERN_NANOS = Pattern.compile("^\\d{23}$");
 
 }
