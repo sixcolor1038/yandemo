@@ -23,9 +23,15 @@ public class DemoRun implements Runnable{
 
     }
 
+    //共享数据
+    static double money =100;
+    static int count = 3;
+    static final double MIN = 0.01;
 
     @Override
     public void run() {
+
+
 
     }
 }
