@@ -15,6 +15,11 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.Optional;
 
+/**
+ * @Author: sixcolor
+ * @Date: 2024-04-18 19:31
+ * @Description:
+ */
 @Component
 @Aspect
 public class WebLogAspect {

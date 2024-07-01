@@ -49,13 +49,12 @@ public class ChineseCharacterCountInFolder {
             String line;
             while ((line = reader.readLine()) != null) {
 
-                line = line.replaceAll("[^\u4E00-\u9FA5]", "");
+                line = line.replaceAll("[^一-龥]", "");
                 chineseCharCount += line.length();
             }
             return chineseCharCount;
         }
     }
-
 
 
 }
