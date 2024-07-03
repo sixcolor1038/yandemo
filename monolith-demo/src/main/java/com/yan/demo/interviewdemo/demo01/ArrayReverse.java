@@ -5,7 +5,7 @@ import java.util.Arrays;
 /**
  * @Author: sixcolor
  * @Date: 2024-04-29 17:50
- * @Description:
+ * @Description: 数组反转
  */
 public class ArrayReverse {
     public static void main(String[] args) {

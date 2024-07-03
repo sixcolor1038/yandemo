@@ -1,5 +1,9 @@
 package com.yan.demo.interviewdemo.demo02;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * @Author: sixcolor
  * @Date: 2024-05-01 18:14
@@ -7,10 +11,11 @@ package com.yan.demo.interviewdemo.demo02;
  */
 public class JavaBase {
     public static void main(String[] args) {
-
-
-
+        List<String> list = Arrays.asList("12","485","45");
+        Collections.sort(list);
+        System.out.println(list);
     }
+
 
     //String理解
     private static void extracted() {
