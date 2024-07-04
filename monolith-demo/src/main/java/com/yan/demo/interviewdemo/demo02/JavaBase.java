@@ -1,8 +1,6 @@
 package com.yan.demo.interviewdemo.demo02;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import com.yan.demo.common.utils.timeutils.DateUtil;
 
 /**
  * @Author: sixcolor
@@ -11,9 +9,7 @@ import java.util.List;
  */
 public class JavaBase {
     public static void main(String[] args) {
-        List<String> list = Arrays.asList("12","485","45");
-        Collections.sort(list);
-        System.out.println(list);
+        System.out.println(DateUtil.getDayBetweenDay("2022-09-01"));
     }
 
 
