@@ -1,6 +1,7 @@
 package com.yan.demo.javademo.service;
 
 import com.yan.demo.common.utils.RResult;
+import com.yan.demo.javademo.ao.AppAO;
 import com.yan.demo.javademo.ao.AreaAO;
 import com.yan.demo.javademo.ao.BandwidthAO;
 import com.yan.demo.javademo.ao.RenameFileAO;
@@ -46,4 +47,6 @@ public interface DemoService {
     RResult<Boolean> redisDemo();
 
     void downloadPDF(CommonRec rec, HttpServletResponse response) throws IOException;
+
+    String easyCall(AppAO ao);
 }

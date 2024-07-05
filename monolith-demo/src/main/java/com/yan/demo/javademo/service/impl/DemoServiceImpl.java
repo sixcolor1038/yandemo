@@ -7,10 +7,13 @@ import com.itextpdf.text.pdf.BaseFont;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
+import com.yan.demo.common.constant.NumberConstant;
 import com.yan.demo.common.constant.RedisConstant;
 import com.yan.demo.common.transfer.ObjectTransfer;
 import com.yan.demo.common.utils.*;
 import com.yan.demo.common.utils.generator.BuilderGenerator;
+import com.yan.demo.common.utils.timeutils.DateUtil;
+import com.yan.demo.javademo.ao.AppAO;
 import com.yan.demo.javademo.ao.AreaAO;
 import com.yan.demo.javademo.ao.BandwidthAO;
 import com.yan.demo.javademo.ao.RenameFileAO;
@@ -527,6 +530,16 @@ public class DemoServiceImpl implements DemoService {
         } catch (DocumentException e) {
             log.info("导出pdf失败:{}", e);
             e.printStackTrace();
+        }
+    }
+
+    @Override
+    public String easyCall(AppAO ao) {
+        if (NumberConstant.STR_ONE.equals(ao.getType())) {
+            //01 调用计算日期间隔接口
+            return DateUtil.getDayBetweenDay(ao.getValue()) + "天";
+        } else {
+            return "无事发生";
         }
     }
 

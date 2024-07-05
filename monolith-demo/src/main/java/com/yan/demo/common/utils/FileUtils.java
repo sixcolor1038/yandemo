@@ -5,6 +5,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -211,6 +215,23 @@ public class FileUtils {
 
         // 然后替换未被转义的单个反斜杠为双反斜杠
         return path.replace("\\", "\\\\");
+    }
+
+    public static void copyFile(File sourceFile, File destFile) throws IOException {
+        if (!destFile.exists()) {
+            destFile.createNewFile();
+        }
+
+        try (FileChannel sourceChannel = new FileInputStream(sourceFile).getChannel();
+             FileChannel destChannel = new FileOutputStream(destFile).getChannel()) {
+            destChannel.transferFrom(sourceChannel, 0, sourceChannel.size());
+        }
+    }
+
+    public static void deleteFile(File file) throws IOException {
+        if (!file.delete()) {
+            throw new IOException("无法删除文件: " + file.getAbsolutePath());
+        }
     }
 
 }

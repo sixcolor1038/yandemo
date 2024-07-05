@@ -1,4 +1,4 @@
-package com.yan.demo.common.constant;
+package com.yan.demo.common.enums;
 
 public enum HttpStatus {
 

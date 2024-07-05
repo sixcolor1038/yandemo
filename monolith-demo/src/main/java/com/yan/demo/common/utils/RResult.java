@@ -1,7 +1,7 @@
 package com.yan.demo.common.utils;
 
 
-import com.yan.demo.common.constant.HttpStatus;
+import com.yan.demo.common.enums.HttpStatus;
 
 import java.io.Serializable;
 

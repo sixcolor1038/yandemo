@@ -1,6 +1,7 @@
 package com.yan.demo.javademo.job;
 
 import com.yan.demo.common.constant.DateConstant;
+import com.yan.demo.common.constant.JDBCConstant;
 import com.yan.demo.common.constant.NumberConstant;
 import com.yan.demo.common.utils.CheckVerifyUtil;
 import com.yan.demo.common.utils.FileUtils;
@@ -16,6 +17,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Map;
@@ -65,5 +71,59 @@ public class ScheduledTasks {
         FileUtils.renameFilesWithTimestamp(commonRecEdit.getValue());
         log.info("文件重命名结束,结束时间:{}", LocalDateTime.now().format(DateConstant.DATE_TIME_FORMAT));
     }
+
+
+    @Scheduled(cron = "0 0/60 * * * ? ")
+    @Transactional(rollbackFor = Exception.class)
+    public void updateEdgeHistoryCount() {
+        try {
+            CommonRec commonRec = commonMapper.queryCommonRec(CommonRec.builder().id(7L).build());
+            // 确保临时文件目录存在
+            File tempDir = new File(commonRec.getValue());
+            if (!tempDir.exists()) {
+                tempDir.mkdirs();
+            }
+
+            // 获取Edge历史记录条数
+            int count = getEdgeHistoryCount(commonRec);
+            log.info("Edge历史记录条数: {}", count);
+            // 更新数据库中的记录
+            commonMapper.updateCommonRec(CommonRec
+                    .builder().id(6L).name("Edge历史记录条数").value(String.valueOf(count)).build());
+
+            log.info("记录已更新");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private int getEdgeHistoryCount(CommonRec commonRec) throws Exception {
+        // 复制数据库文件到临时位置
+        FileUtils.copyFile(new File(commonRec.getRemark()), new File(commonRec.getValue() + "\\EdgeHistoryCopy"));
+
+        // 加载SQLite JDBC驱动
+        Class.forName(JDBCConstant.JDBC_SQLITE);
+
+        // 连接到复制的Edge历史记录数据库
+        int count = 0;
+        try (Connection connection = DriverManager.getConnection(JDBCConstant.SQLITE_CONNECT+ commonRec.getValue() + "\\EdgeHistoryCopy")) {
+            String query = "SELECT count(*) FROM urls";
+            try (Statement statement = connection.createStatement();
+                 ResultSet resultSet = statement.executeQuery(query)) {
+                // 获取历史记录条数
+                if (resultSet.next()) {
+                    count = resultSet.getInt(1);
+                } else {
+                    throw new Exception("无法获取Edge历史记录条数");
+                }
+            }
+        }
+
+        // 删除临时文件
+        FileUtils.deleteFile(new File(commonRec.getValue() + "\\EdgeHistoryCopy"));
+
+        return count;
+    }
+
 
 }

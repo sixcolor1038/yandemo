@@ -1,7 +1,8 @@
 package com.yan.demo.javademo.controller;
 
-import com.yan.demo.common.constant.HttpStatus;
+import com.yan.demo.common.enums.HttpStatus;
 import com.yan.demo.common.utils.RResult;
+import com.yan.demo.javademo.ao.AppAO;
 import com.yan.demo.javademo.ao.AreaAO;
 import com.yan.demo.javademo.ao.BandwidthAO;
 import com.yan.demo.javademo.ao.RenameFileAO;
@@ -116,4 +117,10 @@ public class DemoController extends AbstractController {
 
     }
 
+    @ApiOperation(value = "简单调用")
+    @PostMapping("easyCall")
+    public RResult<String> easyCall(@RequestBody AppAO ao) {
+
+        return RResult.success(demoService.easyCall(ao));
+    }
 }

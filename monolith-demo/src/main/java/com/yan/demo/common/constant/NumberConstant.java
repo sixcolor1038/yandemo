@@ -6,6 +6,13 @@ package com.yan.demo.common.constant;
  * @Description:
  */
 public class NumberConstant {
+
+
+    /**
+     * 字符串-01
+     */
+    public static final String STR_ONE = "01";
+
     /**
      * 字符串-03
      */
