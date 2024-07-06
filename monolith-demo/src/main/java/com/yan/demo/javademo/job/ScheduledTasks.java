@@ -96,7 +96,7 @@ public class ScheduledTasks {
                     .value(String.valueOf(count))
                     .build());
 
-            log.info("记录已更新");
+            log.info("记录已更新,更新时间: {}", LocalDateTime.now().format(DateConstant.DATE_TIME_FORMAT));
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -2,8 +2,6 @@ package com.yan.demo.jucdemo.testlist.test4;
 
 import com.yan.demo.common.utils.randomutils.RandomNumberUtil;
 
-import java.util.Random;
-
 /**
  * @Author: sixcolor
  * @Date: 2024-03-26 17:57
@@ -11,7 +9,7 @@ import java.util.Random;
  */
 public class DemoThread extends Thread {
     /**
-     *抢红包使用多线程
+     * 抢红包使用多线程
      * 假设：100块，分成了3个包，现在有5个人抢
      * 其中，红包是共享数据
      * 5个人是5条线程
@@ -62,9 +60,8 @@ public class DemoThread extends Thread {
                 if (count == 1) {
                     prize = money;
                 } else {
-                    Random random = new Random();
                     double bounds = money - (count - 1) * MIN;
-                    prize = RandomNumberUtil.nextDouble(random, bounds);
+                    prize = RandomNumberUtil.nextDouble(bounds);
                     if (prize < MIN) {
                         prize = MIN;
                     }

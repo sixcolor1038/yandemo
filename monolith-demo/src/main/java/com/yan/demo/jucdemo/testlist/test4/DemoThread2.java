@@ -4,7 +4,6 @@ import com.yan.demo.common.utils.randomutils.RandomNumberUtil;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Random;
 
 /**
  * @Author: sixcolor
@@ -65,10 +64,9 @@ public class DemoThread2 extends Thread {
                     prize = money;
                 } else {
                     //获取抽奖范围
-                    Random random = new Random();
                     double bounds = money.subtract(BigDecimal.valueOf(count - 1).multiply(MIN)).doubleValue();
                     //抽奖金额
-                    prize = BigDecimal.valueOf(RandomNumberUtil.nextDouble(random, bounds));
+                    prize = BigDecimal.valueOf(RandomNumberUtil.nextDouble(bounds));
 
                 }
                 //设置抽中红包保留两位小数点，四舍五入
