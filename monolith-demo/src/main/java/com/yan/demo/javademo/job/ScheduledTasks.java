@@ -39,7 +39,8 @@ public class ScheduledTasks {
     @Autowired
     private CommonMapper commonMapper;
 
-    @Scheduled(cron = "0 0/60 * * * ? ")
+    //将某个文件夹下的图片都统计出来，每小时统计一次，将总数更新到数据库
+    //@Scheduled(cron = "0 0/60 * * * ? ")
     @Transactional(rollbackFor = Exception.class)
     public void updateImageCount() {
         CommonRec commonRec = commonMapper.queryCommonRec(CommonRec.builder().id(2L).build());
@@ -72,7 +73,7 @@ public class ScheduledTasks {
         log.info("文件重命名结束,结束时间:{}", LocalDateTime.now().format(DateConstant.DATE_TIME_FORMAT));
     }
 
-
+    //每小时获取一次edge浏览器的历史记录数量，并更新进数据库
     @Scheduled(cron = "0 0/60 * * * ? ")
     @Transactional(rollbackFor = Exception.class)
     public void updateEdgeHistoryCount() {
@@ -89,7 +90,11 @@ public class ScheduledTasks {
             log.info("Edge历史记录条数: {}", count);
             // 更新数据库中的记录
             commonMapper.updateCommonRec(CommonRec
-                    .builder().id(6L).name("Edge历史记录条数").value(String.valueOf(count)).build());
+                    .builder()
+                    .id(6L)
+                    .name("Edge历史记录条数")
+                    .value(String.valueOf(count))
+                    .build());
 
             log.info("记录已更新");
         } catch (Exception e) {
@@ -98,15 +103,17 @@ public class ScheduledTasks {
     }
 
     private int getEdgeHistoryCount(CommonRec commonRec) throws Exception {
+        String path = commonRec.getValue() + "\\EdgeHistoryCopy";
         // 复制数据库文件到临时位置
-        FileUtils.copyFile(new File(commonRec.getRemark()), new File(commonRec.getValue() + "\\EdgeHistoryCopy"));
+        FileUtils.copyFile(new File(commonRec.getRemark()), new File(path));
 
         // 加载SQLite JDBC驱动
         Class.forName(JDBCConstant.JDBC_SQLITE);
 
         // 连接到复制的Edge历史记录数据库
         int count = 0;
-        try (Connection connection = DriverManager.getConnection(JDBCConstant.SQLITE_CONNECT+ commonRec.getValue() + "\\EdgeHistoryCopy")) {
+        try (Connection connection = DriverManager
+                .getConnection(JDBCConstant.SQLITE_CONNECT + path)) {
             String query = "SELECT count(*) FROM urls";
             try (Statement statement = connection.createStatement();
                  ResultSet resultSet = statement.executeQuery(query)) {
@@ -120,7 +127,7 @@ public class ScheduledTasks {
         }
 
         // 删除临时文件
-        FileUtils.deleteFile(new File(commonRec.getValue() + "\\EdgeHistoryCopy"));
+        FileUtils.deleteFile(new File(path));
 
         return count;
     }
