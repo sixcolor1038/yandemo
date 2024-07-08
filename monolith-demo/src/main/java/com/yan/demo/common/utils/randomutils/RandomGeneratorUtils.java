@@ -1,4 +1,4 @@
-package com.yan.demo.common.utils;
+package com.yan.demo.common.utils.randomutils;
 
 import com.yan.demo.common.constant.DateConstant;
 

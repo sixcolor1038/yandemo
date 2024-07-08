@@ -12,6 +12,7 @@ import com.yan.demo.common.constant.RedisConstant;
 import com.yan.demo.common.transfer.ObjectTransfer;
 import com.yan.demo.common.utils.*;
 import com.yan.demo.common.utils.generator.BuilderGenerator;
+import com.yan.demo.common.utils.randomutils.RandomGeneratorUtils;
 import com.yan.demo.common.utils.timeutils.DateUtil;
 import com.yan.demo.javademo.ao.AppAO;
 import com.yan.demo.javademo.ao.AreaAO;
