@@ -2,9 +2,11 @@ package com.yan.demo.common.utils.timeutils;
 
 import com.yan.demo.common.constant.DateConstant;
 
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
+import java.util.Date;
 
 /**
  * @Author: sixcolor
@@ -12,6 +14,12 @@ import java.time.temporal.TemporalAdjusters;
  * @Description: 日期相关的工具类
  */
 public class DateUtil {
+
+    public static String getDateTimeStr(){
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+        Date currentDate = new Date();
+        return sdf.format(currentDate);
+    }
 
 
     /**
