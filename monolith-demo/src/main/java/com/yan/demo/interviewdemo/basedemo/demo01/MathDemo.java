@@ -1,4 +1,4 @@
-package com.yan.demo.interviewdemo.demo01;
+package com.yan.demo.interviewdemo.basedemo.demo01;
 
 /**
  * @Author: sixcolor

@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 /**
  * @Author: sixcolor
  * @Date: 2024-04-17 15:04
- * @Description:
+ * @Description: 日期时间常量
  */
 public class DateConstant {
     /**

@@ -3,7 +3,7 @@ package com.yan.demo.common.constant;
 /**
  * @Author: sixcolor
  * @Date: 2024-04-28 8:49
- * @Description:
+ * @Description: 数值常量
  */
 public class NumberConstant {
 

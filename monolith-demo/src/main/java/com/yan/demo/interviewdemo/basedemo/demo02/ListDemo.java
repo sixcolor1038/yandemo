@@ -1,4 +1,4 @@
-package com.yan.demo.interviewdemo.demo02;
+package com.yan.demo.interviewdemo.basedemo.demo02;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

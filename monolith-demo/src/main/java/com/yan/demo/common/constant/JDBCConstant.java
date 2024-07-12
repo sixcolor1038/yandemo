@@ -3,7 +3,7 @@ package com.yan.demo.common.constant;
 /**
  * @Author: sixcolor
  * @Date: 2024-06-04 15:35
- * @Description:
+ * @Description: JDBC常量
  */
 public class JDBCConstant {
 

@@ -1,5 +1,7 @@
 package com.yan.demo.exceldemo.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -15,8 +17,8 @@ import java.time.LocalDate;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@TableName("PRODUCT_LIST")
 public class ProductList {
+    @TableId(value = "PRODUCT_LIST_ID", type = IdType.AUTO)
     private Long productListID;
     private String businessMajor;
     private String businessModule;

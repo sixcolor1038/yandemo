@@ -3,7 +3,7 @@ package com.yan.demo.common.constant;
 /**
  * @Author: sixcolor
  * @Date: 2024-04-19 15:08
- * @Description:
+ * @Description: Redis常量
  */
 public class RedisConstant {
     /**
