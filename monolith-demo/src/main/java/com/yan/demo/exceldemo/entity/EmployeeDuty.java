@@ -4,7 +4,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,13 +18,12 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@TableName("EMPLOYEE_DUTY")
+@ApiModel(value = "员工值班信息")
 public class EmployeeDuty {
     /**
      * 主键ID
      */
-    @Schema(description = "主键ID")
-    @TableField("employeeDutyID")
+    @ApiModelProperty(value = "主键ID")
     @TableId(value = "EMPLOYEE_DUTY_ID", type = IdType.AUTO)
     private Long employeeDutyID;
     /**

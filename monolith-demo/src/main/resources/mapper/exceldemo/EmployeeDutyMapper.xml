@@ -1,22 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.yan.demo.exceldemo.mapper.EmployeeDutyMapper">
-    <resultMap type="com.yan.demo.exceldemo.entity.EmployeeDuty" id="EmployeeDutyMap">
-        <result property="employeeDutyID" column="EMPLOYEE_DUTY_ID" jdbcType="VARCHAR"/>
-        <result property="name" column="NAME" jdbcType="VARCHAR"/>
-        <result property="employeeGroup" column="EMPLOYEE_GROUP" jdbcType="VARCHAR"/>
-        <result property="subGroup1" column="SUB_GROUP1" jdbcType="VARCHAR"/>
-        <result property="subGroup2" column="SUB_GROUP2" jdbcType="VARCHAR"/>
-        <result property="unit" column="UNIT" jdbcType="VARCHAR"/>
-        <result property="officeLocation" column="OFFICE_LOCATION" jdbcType="VARCHAR"/>
-        <result property="contact" column="CONTACT" jdbcType="VARCHAR"/>
-        <result property="thisWeekOnDuty" column="THIS_WEEK_ON_DUTY" jdbcType="VARCHAR"/>
-        <result property="nextWeekOnDuty" column="NEXT_WEEK_ON_DUTY" jdbcType="VARCHAR"/>
-        <result property="remarks" column="REMARKS" jdbcType="VARCHAR"/>
-    </resultMap>
+
 
     <!-- 通过ID查询单条数据 -->
-    <select id="queryById" resultMap="EmployeeDutyMap">
+    <select id="queryById" resultType="com.yan.demo.exceldemo.entity.EmployeeDuty" >
         select EMPLOYEE_DUTY_ID,
                NAME,
                EMPLOYEE_GROUP,
@@ -33,7 +21,7 @@
     </select>
 
     <!--分页查询指定行数据-->
-    <select id="queryAllByLimit" resultMap="EmployeeDutyMap">
+    <select id="queryAllByLimit" resultType="com.yan.demo.exceldemo.entity.EmployeeDuty">
         select
         EMPLOYEE_DUTY_ID,NAME,EMPLOYEE_GROUP,SUB_GROUP1,SUB_GROUP2,UNIT,OFFICE_LOCATION,CONTACT,THIS_WEEK_ON_DUTY,NEXT_WEEK_ON_DUTY,REMARKS
         from EMPLOYEE_DUTY
@@ -163,7 +151,7 @@
     </insert>
 
     <!-- 更新数据 -->
-    <update id="update">
+    <update id="updateEmployeeDuty">
         update EMPLOYEE_DUTY
         <set>
             <if test="employeeDutyID != null and employeeDutyID != ''">
@@ -204,7 +192,7 @@
     </update>
 
     <!--通过主键删除-->
-    <delete id="deleteById">
+    <delete id="deleteEmployeeDutyById">
         delete
         from EMPLOYEE_DUTY
         where EMPLOYEE_DUTY_ID = #{employeeDutyID}

@@ -72,7 +72,7 @@ public interface EmployeeDutyMapper extends BaseMapper<EmployeeDuty> {
      * @param employeeDuty 实例对象
      * @return 影响行数
      */
-    int update(EmployeeDuty employeeDuty);
+    int updateEmployeeDuty(EmployeeDuty employeeDuty);
 
     /**
      * 通过主键删除数据
@@ -80,5 +80,5 @@ public interface EmployeeDutyMapper extends BaseMapper<EmployeeDuty> {
      * @param employeeDutyId 主键
      * @return 影响行数
      */
-    int deleteById(String employeeDutyId);
+    int deleteEmployeeDutyById(String employeeDutyId);
 }
