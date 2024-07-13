@@ -15,4 +15,20 @@
         values (#{sId},#{sName},#{sBirth},#{sSex})
     </insert>
 
+    <select id="getStudent" resultType="com.yan.demo.javademo.entity.Student">
+        select s_id,s_name,s_birth,s_sex
+        from STUDENT
+        <where>
+            <if test="sId != null and sId != ''">
+                and s_id = #{sId}
+            </if>
+            <if test="sName != null and sName != ''">
+                and s_name = #{sName}
+            </if>
+            <if test="sSex != null and sSex != ''">
+                and s_sex = #{sSex}
+            </if>
+        </where>
+    </select>
+
 </mapper>

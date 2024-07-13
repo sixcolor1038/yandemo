@@ -12,4 +12,7 @@ import org.apache.ibatis.annotations.Mapper;
 public interface StudentMapper {
 
     int addStudent(Student student);
+
+    Student getStudent(Student student);
+
 }

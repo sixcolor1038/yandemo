@@ -2,6 +2,8 @@ package com.yan.demo.javademo.entity;
 
 import lombok.Data;
 
+import javax.validation.constraints.NotBlank;
+
 /**
  * @Author: sixcolor
  * @Date: 2024-04-18 15:09
@@ -10,11 +12,19 @@ import lombok.Data;
 @Data
 public class Student {
     private String sId;
+    @NotBlank(message = "学生姓名不能为空")
     private String sName;
     private String sBirth;
     private String sSex;
 
     public Student() {
+    }
+
+    public Student(String sId, String sName, String sBirth, String sSex) {
+        this.sId = sId;
+        this.sName = sName;
+        this.sBirth = sBirth;
+        this.sSex = sSex;
     }
 
     private Student(Builder builder) {

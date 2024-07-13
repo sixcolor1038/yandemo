@@ -1,6 +1,7 @@
 package com.yan.demo.javademo.service.impl;
 
 import com.yan.demo.common.constant.RedisConstant;
+import com.yan.demo.common.exception.BusinessException;
 import com.yan.demo.common.utils.RedisUtils;
 import com.yan.demo.javademo.entity.Student;
 import com.yan.demo.javademo.mapper.StudentMapper;
@@ -9,6 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
+import java.util.function.Consumer;
 
 /**
  * @Author: sixcolor
@@ -35,4 +39,21 @@ public class StudentServiceImpl implements StudentService {
                 .SSex(student.getSSex())
                 .build());
     }
+
+    @Override
+    public Student getStudent(Student student) {
+        Optional<Student> optional = Optional.ofNullable(student);
+
+        if (!optional.isPresent()) {
+            throw new BusinessException("不能为null");
+        }
+        return studentMapper.getStudent(student);
+    }
+
+    @Override
+    public Student getStudent(String sId) {
+        return studentMapper.getStudent(Student.builder().SID(sId).build());
+    }
+
+
 }

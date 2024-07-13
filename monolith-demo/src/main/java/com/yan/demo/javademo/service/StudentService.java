@@ -9,4 +9,8 @@ import com.yan.demo.javademo.entity.Student;
  */
 public interface StudentService {
     int addStudent(Student student);
+
+    Student getStudent(Student student);
+
+    Student getStudent(String sId);
 }

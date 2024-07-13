@@ -1,16 +1,15 @@
 package com.yan.demo.javademo.controller;
 
+import com.yan.demo.common.exception.BusinessException;
 import com.yan.demo.common.utils.RResult;
 import com.yan.demo.javademo.entity.Student;
 import com.yan.demo.javademo.service.StudentService;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import javax.validation.Valid;
 
 /**
  * @Author: sixcolor
@@ -19,21 +18,34 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RequestMapping("/student")
 @RestController
-@Api(value = "学生示例")
+@Tag(name = "StudentController", description = "学生示例")
 public class StudentController extends AbstractController {
     @Autowired
     private StudentService studentService;
 
-    @PostMapping("/addStudent")
-    @ApiOperation(value = "新增学生")
-    public RResult<Integer> addStudent(@ApiParam(name = "RenameFileAO", value = "需修改文件") @RequestBody Student ao) {
+    @PutMapping()
+    @Operation(summary = "新增学生", description = "新增学生")
+    public RResult<Student> addStudent(@Valid @RequestBody Student ao) {
         sou();
-        return RResult.success(studentService.addStudent(ao));
+        int i = studentService.addStudent(ao);
+        return RResult.handleResult(i, ao);
     }
 
     @Override
     public void sou() {
         log.info("bbb");
+    }
+
+    @PostMapping()
+    @Operation(summary = "查询学生")
+    public RResult<Student> getStudent(@RequestBody Student student) {
+        return RResult.success(studentService.getStudent(student));
+    }
+
+    @GetMapping("{sId}")
+    @Operation(summary = "查询学生", description = "根据id查询学生信息")
+    public RResult<Student> getStudentById(@PathVariable String sId) {
+        return RResult.success(studentService.getStudent(sId));
     }
 
 }
