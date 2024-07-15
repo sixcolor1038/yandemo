@@ -9,4 +9,8 @@ public interface InterfaceDemo {
     void eat();
 
     void sleep();
+
+    static String get() {
+        return "好";
+    }
 }

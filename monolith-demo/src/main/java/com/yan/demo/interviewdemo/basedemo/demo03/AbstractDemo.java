@@ -7,7 +7,7 @@ package com.yan.demo.interviewdemo.basedemo.demo03;
  */
 public abstract class AbstractDemo {
 
-    public AbstractDemo (){
+    public AbstractDemo() {
 
     }
 
@@ -16,4 +16,12 @@ public abstract class AbstractDemo {
     }
 
     abstract void sleep();
+
+    public static String aa() {
+        return ax;
+    }
+
+    public static final String ax = "ax";
+
+    public final String ac = "ac";
 }
