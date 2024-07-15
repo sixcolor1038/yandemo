@@ -18,10 +18,13 @@ public abstract class AbstractDemo {
     abstract void sleep();
 
     public static String aa() {
+        System.out.println(ab);
         return ax;
     }
 
     public static final String ax = "ax";
 
-    public final String ac = "ac";
+    private static final String ac = "ac";
+
+    private static String ab = "ab";
 }

@@ -13,7 +13,16 @@ import java.util.stream.Collectors;
  */
 public class ListDemo {
     public static void main(String[] args) {
-    
+        List<Integer> list = Arrays.asList(1, 5, 21, 3, 2, 5);
+        System.out.println(list);
+        Set<Integer> set = new HashSet<>();
+        set.add(1);
+        set.add(8);
+        set.add(2);
+        set.add(8);
+        set.add(7);
+        set.add(67);
+        System.out.println(set);
     }
 
     //根据list中某个字段排序

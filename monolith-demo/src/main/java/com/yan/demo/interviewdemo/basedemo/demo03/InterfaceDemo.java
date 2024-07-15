@@ -6,6 +6,9 @@ package com.yan.demo.interviewdemo.basedemo.demo03;
  * @Description:
  */
 public interface InterfaceDemo {
+     String aa = "aa";
+
+
     void eat();
 
     void sleep();
