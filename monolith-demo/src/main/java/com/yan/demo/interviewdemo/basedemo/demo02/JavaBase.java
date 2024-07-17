@@ -9,6 +9,27 @@ import com.yan.demo.common.utils.timeutils.DateUtil;
  */
 public class JavaBase {
     public static void main(String[] args) {
+        ok:
+        for (int i = 0; i < 10; i++) {
+            for (int j = 0; j < 10; j++) {
+                System.out.println("i=" + i + ",j=" + j);
+                if (j == 5) {
+                    System.out.println("到此为止了");
+                    break ok;
+                }
+            }
+        }
+    }
+
+    private static void extracted2() {
+        final String aa = "dfs";
+        String bb = aa;
+        bb = "fas";
+        System.out.println(aa);
+        System.out.println(bb);
+    }
+
+    private static void extracted1() {
         System.out.println(DateUtil.getDayBetweenDay("2022-09-01"));
     }
 

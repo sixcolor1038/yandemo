@@ -3,19 +3,6 @@ package com.yan.demo.crawler.civitaidemo;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-
-/**
- * @Author: sixcolor
- * @Date: 2024-06-09 15:35
- * @Description:
- */
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.FileOutputStream;
@@ -24,6 +11,11 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+/**
+ * @Author: sixcolor
+ * @Date: 2024-06-09 15:35
+ * @Description:
+ */
 public class Demo {
     public static void main(String[] args) {
         try {
