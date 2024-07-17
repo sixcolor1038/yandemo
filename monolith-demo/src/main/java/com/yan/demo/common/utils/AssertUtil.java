@@ -1,6 +1,5 @@
 package com.yan.demo.common.utils;
 
-import cn.hutool.core.util.ObjectUtil;
 
 import com.yan.demo.common.enums.CommonErrorEnum;
 import com.yan.demo.common.enums.ErrorEnum;
@@ -10,6 +9,8 @@ import org.hibernate.validator.HibernateValidator;
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.Validator;
+import java.lang.reflect.Array;
+import java.math.BigDecimal;
 import java.text.MessageFormat;
 import java.util.*;
 
@@ -134,19 +135,79 @@ public class AssertUtil {
     }
 
     public static void equal(Object o1, Object o2, String msg) {
-        if (!ObjectUtil.equal(o1, o2)) {
+        if (!equal(o1, o2)) {
             throwException(msg);
         }
     }
 
     public static void notEqual(Object o1, Object o2, String msg) {
-        if (ObjectUtil.equal(o1, o2)) {
+        if (equal(o1, o2)) {
             throwException(msg);
         }
     }
 
+    public static boolean equal(Object obj1, Object obj2) {
+        return obj1 instanceof Number && obj2 instanceof Number ? equals((Number) obj1, (Number) obj2) : Objects.equals(obj1, obj2);
+    }
+
+    public static boolean equals(Number number1, Number number2) {
+        return number1 instanceof BigDecimal && number2 instanceof BigDecimal ? equals((BigDecimal) number1, (BigDecimal) number2) : Objects.equals(number1, number2);
+    }
+
     private static boolean isEmpty(Object obj) {
-        return ObjectUtil.isEmpty(obj);
+        return isObjEmpty(obj);
+    }
+
+    private static boolean isObjEmpty(Object obj) {
+        if (null == obj) {
+            return true;
+        } else if (obj instanceof CharSequence) {
+            return isStrEmpty((CharSequence) obj);
+        } else if (obj instanceof Map) {
+            return isMapEmpty((Map) obj);
+        } else if (obj instanceof Iterable) {
+            return isIterableEmpty((Iterable) obj);
+        } else if (obj instanceof Iterator) {
+            return isIteratorEmpty((Iterator) obj);
+        } else {
+            return isObjArray(obj) ? isArrayEmpty(obj) : false;
+        }
+    }
+
+    private static boolean isStrEmpty(CharSequence str) {
+        return str == null || str.length() == 0;
+    }
+
+    private static boolean isMapEmpty(Map<?, ?> map) {
+        return null == map || map.isEmpty();
+    }
+
+    private static boolean isIterableEmpty(Iterable<?> iterable) {
+        return null == iterable || isEmpty(iterable.iterator());
+    }
+
+    private static boolean isIteratorEmpty(Iterator<?> Iterator) {
+        return null == Iterator || !Iterator.hasNext();
+    }
+
+    private static boolean isObjArray(Object obj) {
+        return null != obj && obj.getClass().isArray();
+    }
+
+    private static boolean isArrayEmpty(Object array) {
+        if (array != null) {
+            if (isArray(array)) {
+                return 0 == Array.getLength(array);
+            } else {
+                return false;
+            }
+        } else {
+            return true;
+        }
+    }
+
+    private static boolean isArray(Object obj) {
+        return null != obj && obj.getClass().isArray();
     }
 
     private static void throwException(String msg) {
