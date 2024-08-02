@@ -89,14 +89,16 @@ public class ScheduledTasks {
             int count = getEdgeHistoryCount(commonRec);
             log.info("Edge历史记录条数: {}", count);
             // 更新数据库中的记录
+            String time = LocalDateTime.now().format(DateConstant.DATE_TIME_FORMAT);
             commonMapper.updateCommonRec(CommonRec
                     .builder()
                     .id(6L)
                     .name("Edge历史记录条数")
                     .value(String.valueOf(count))
+                    .remark("当前更新时间:" + time)
                     .build());
 
-            log.info("记录已更新,更新时间: {}", LocalDateTime.now().format(DateConstant.DATE_TIME_FORMAT));
+            log.info("记录已更新,更新时间: {}", time);
         } catch (Exception e) {
             e.printStackTrace();
         }
