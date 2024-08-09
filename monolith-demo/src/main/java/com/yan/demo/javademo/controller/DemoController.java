@@ -2,6 +2,7 @@ package com.yan.demo.javademo.controller;
 
 import com.yan.demo.common.enums.HttpStatus;
 import com.yan.demo.common.utils.RResult;
+import com.yan.demo.common.utils.WeatherUtils;
 import com.yan.demo.javademo.ao.AppAO;
 import com.yan.demo.javademo.ao.AreaAO;
 import com.yan.demo.javademo.ao.BandwidthAO;
@@ -14,6 +15,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -34,8 +36,18 @@ import java.util.List;
 @Api(value = "示例")
 public class DemoController extends AbstractController {
 
+    @Value("${yandemo.hefeng.loc}")
+    private String HEFENG_WEATHER_LOC;
+    @Value("${yandemo.hefeng.api}")
+    private String HEFENG_WEATHER_API;
     @Autowired
     private DemoService demoService;
+
+    @PostMapping("/weather")
+    @ApiOperation(value = "根据和风天气获取天气 -测试")
+    public RResult<String> weather() {
+        return RResult.success(WeatherUtils.getWeatherByHFTQ(HEFENG_WEATHER_LOC, HEFENG_WEATHER_API));
+    }
 
     @PostMapping("/rename")
     @ApiOperation(value = "重命名文件")
