@@ -28,7 +28,7 @@
                 VALUE = #{value},
             </if>
             <if test="remark != null and remark != ''">
-                VALUE = #{remark},
+                REMARK = #{remark},
             </if>
         </set>
         where ID = #{id}
