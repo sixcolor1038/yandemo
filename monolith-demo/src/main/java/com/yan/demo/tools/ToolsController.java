@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.text.Normalizer;
+import java.util.HashMap;
 
 /**
  * @Author: sixcolor
@@ -28,7 +29,16 @@ public class ToolsController {
 
     @PostMapping("font")
     @ApiOperation(value = "转换字体格式")
-    public RResult<String> font (@RequestParam String text){
-        return RResult.success(Normalizer.normalize(text, Normalizer.Form.NFKC));
+    public String font(@RequestBody HashMap<String, String> request) {
+        String text = request.get("text");
+        boolean flag = Boolean.parseBoolean(request.get("flag"));
+
+        String normalize = Normalizer.normalize(text.replaceAll("[\\p{C}\\p{Z}]", ""), Normalizer.Form.NFKC);
+        if (flag) {
+            return normalize.replace("接又", "接口");
+        }
+        return normalize;
     }
+
+
 }
