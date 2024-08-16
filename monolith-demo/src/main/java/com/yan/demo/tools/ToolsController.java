@@ -1,11 +1,11 @@
 package com.yan.demo.tools;
 
 import com.yan.demo.common.utils.RResult;
-import com.yan.demo.tools.zipfileextractor.PasswordReader;
 import com.yan.demo.tools.rmbconvert.RMBUtil;
+import com.yan.demo.tools.zipfileextractor.PasswordReader;
 import com.yan.demo.tools.zipfileextractor.ZipUtil;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
@@ -24,19 +24,19 @@ import java.util.Map;
  */
 @RequestMapping("/tools")
 @RestController
-@Api(value = "工具")
+@Tag(name = "ToolsController", description = "工具")
 public class ToolsController {
 
     private static final Logger log = LoggerFactory.getLogger(ToolsController.class);
 
     @GetMapping("/rmbConvert")
-    @ApiOperation(value = "数字转换成大写")
+    @Operation(summary = "数字转换成大写", description = "数字转换成大写")
     public RResult<String> convert(@RequestParam BigDecimal amount) {
         return RResult.success(RMBUtil.numberToCN(amount), 1L);
     }
 
     @PostMapping("font")
-    @ApiOperation(value = "转换字体格式")
+    @Operation(summary = "转换字体格式", description = "转换字体格式")
     public String font(@RequestBody HashMap<String, String> request) {
         String text = request.get("text");
         boolean flag = Boolean.parseBoolean(request.get("flag"));
@@ -61,13 +61,19 @@ public class ToolsController {
      * @return 返回成功解压的密码或没有有效密码的信息
      */
     @PostMapping("/crack")
+    @Operation(summary = "破解", description = "破解")
     public String crackZipFile(@RequestBody HashMap<String, String> request) throws IOException {
+        //需解压路径文件名
         String zipFileFullName = request.get("zipFileFullName");
+        //解压到的文件路径
         String filePath = request.get("filePath");
+        //密码路径
         String passwordFilePath = request.get("passwordFilePath");
+        //获取密码
         List<String> passwords = PasswordReader.readPasswords(passwordFilePath);
-        boolean b = ZipUtil.crackZipFile(zipFileFullName, filePath, passwords);
-        if (b) {
+        //解压文件
+        boolean flag = ZipUtil.crackZipFile(zipFileFullName, filePath, passwords);
+        if (flag) {
             log.info("解压成功");
             return "解压成功";
         } else {
