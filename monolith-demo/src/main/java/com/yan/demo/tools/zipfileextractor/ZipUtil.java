@@ -10,6 +10,7 @@ import net.lingala.zip4j.model.enums.EncryptionMethod;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +23,40 @@ import java.util.List;
  */
 public class ZipUtil {
     private static final Logger log = LoggerFactory.getLogger(ZipUtil.class);
+
+    /**
+     * 批量解压文件夹中的所有压缩文件
+     *
+     * @param folderPath 存放压缩文件的文件夹路径
+     * @param destFolder 解压到的目标文件夹路径
+     * @param passwords  加密密码
+     */
+    public static boolean batchUnzipFiles(String folderPath, String destFolder, List<String> passwords) {
+        File folder = new File(folderPath);
+        if (!folder.isDirectory()) {
+            log.error("提供的路径不是一个文件夹：{}", folderPath);
+            return false;
+        }
+
+        File[] files = folder.listFiles((dir, name) -> name.endsWith(".zip"));
+        if (files == null || files.length == 0) {
+            log.info("文件夹中没有找到压缩文件：{}", folderPath);
+            return false;
+        }
+
+        for (File file : files) {
+            String zipFileFullName = file.getAbsolutePath();
+            String fileNameWithoutExtension = file.getName().replace(".zip", "");
+            String filePath = new File(destFolder, fileNameWithoutExtension).getAbsolutePath();
+            boolean flag = crackZipFile(zipFileFullName, filePath, passwords);
+            if (flag) {
+                log.info("成功解压文件 {}", zipFileFullName);
+            } else {
+                log.error("无法解压文件 {}，没有找到有效的密码", zipFileFullName);
+            }
+        }
+        return true;
+    }
 
     public static boolean crackZipFile(String zipFilePath, String destDir, List<String> passwords) {
         try {
@@ -51,12 +86,13 @@ public class ZipUtil {
 
     /**
      * 压缩指定路径的文件
-     * @param srcFilePath 待压缩文件路径
+     *
+     * @param srcFilePath     待压缩文件路径
      * @param zipPathFileName zip文件全路径名
-     * @param password 加密密码
+     * @param password        加密密码
      * @return
      */
-    public static boolean zipFile(String srcFilePath, String zipPathFileName, String password){
+    public static boolean zipFile(String srcFilePath, String zipPathFileName, String password) {
 
         try {
             // 生成的压缩文件
@@ -69,7 +105,7 @@ public class ZipUtil {
             parameters.setCompressionMethod(CompressionMethod.DEFLATE);
             parameters.setCompressionLevel(CompressionLevel.NORMAL);
 
-            if(StringUtils.isNotEmpty(password)){
+            if (StringUtils.isNotEmpty(password)) {
                 parameters.setEncryptFiles(true);
                 parameters.setEncryptionMethod(EncryptionMethod.AES);
                 parameters.setAesKeyStrength(AesKeyStrength.KEY_STRENGTH_256);
@@ -85,38 +121,39 @@ public class ZipUtil {
             return true;
         } catch (ZipException e) {
             e.printStackTrace();
-            log.error("压缩文件【"+srcFilePath+"】到路径【"+zipPathFileName+"】失败：\n"+e.getMessage());
+            log.error("压缩文件【" + srcFilePath + "】到路径【" + zipPathFileName + "】失败：\n" + e.getMessage());
             return false;
         }
     }
 
     /**
-     *  @param zipFileFullName zip文件所在的路径名
-     * @param filePath 解压到的路径
-     * @param password 需要解压的密码
+     * @param zipFileFullName zip文件所在的路径名
+     * @param filePath        解压到的路径
+     * @param password        需要解压的密码
      * @return
      */
     public static boolean unZipFile(String zipFileFullName, String filePath, String password) {
         try {
             ZipFile zipFile = new ZipFile(zipFileFullName);
             // 如果解压需要密码
-            if(StringUtils.isNotEmpty(password) && zipFile.isEncrypted()) {
+            if (StringUtils.isNotEmpty(password) && zipFile.isEncrypted()) {
                 zipFile.setPassword(password.toCharArray());
             }
             zipFile.extractAll(filePath);
             return true;
         } catch (ZipException e) {
             e.printStackTrace();
-            log.error("解压文件【"+zipFileFullName+"】到路径【"+filePath+"】失败：\n"+e.getMessage());
+            log.error("解压文件【" + zipFileFullName + "】到路径【" + filePath + "】失败：\n" + e.getMessage());
             return false;
         }
     }
 
     /**
      * 添加文件到压缩文件中
-     * @param zipFullFileName zip文件所在路径及全名
+     *
+     * @param zipFullFileName  zip文件所在路径及全名
      * @param fullFileNameList 待添加的文件全路径集合
-     * @param rootFolderInZip 在压缩文件里的文件夹名
+     * @param rootFolderInZip  在压缩文件里的文件夹名
      * @return
      */
     public static boolean addFilesToZip(String zipFullFileName, List<String> fullFileNameList, String rootFolderInZip) {
@@ -130,9 +167,9 @@ public class ZipUtil {
             ZipParameters parameters = new ZipParameters();
             parameters.setCompressionMethod(CompressionMethod.DEFLATE);
             parameters.setCompressionLevel(CompressionLevel.NORMAL);
-            if(StringUtils.isNotEmpty(rootFolderInZip)){
-                if(!rootFolderInZip.endsWith("/")){
-                    rootFolderInZip = rootFolderInZip+"/";
+            if (StringUtils.isNotEmpty(rootFolderInZip)) {
+                if (!rootFolderInZip.endsWith("/")) {
+                    rootFolderInZip = rootFolderInZip + "/";
                 }
                 parameters.setRootFolderNameInZip(rootFolderInZip);
             }
@@ -140,13 +177,14 @@ public class ZipUtil {
             return true;
         } catch (ZipException e) {
             e.printStackTrace();
-            log.error("添加文件失败：\n"+e.getMessage());
+            log.error("添加文件失败：\n" + e.getMessage());
             return false;
         }
     }
 
     /**
      * 从压缩文件中删除路径
+     *
      * @param zipFullFileName
      * @param fileName
      * @return
@@ -158,7 +196,7 @@ public class ZipUtil {
             return true;
         } catch (ZipException e) {
             e.printStackTrace();
-            log.error("删除文件失败：\n"+e.getMessage());
+            log.error("删除文件失败：\n" + e.getMessage());
             return false;
         }
     }

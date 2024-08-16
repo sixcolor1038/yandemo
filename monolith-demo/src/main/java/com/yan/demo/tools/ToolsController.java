@@ -69,10 +69,17 @@ public class ToolsController {
         String filePath = request.get("filePath");
         //密码路径
         String passwordFilePath = request.get("passwordFilePath");
+        String status = request.get("status");
+        String folderPath = request.get("folderPath");
         //获取密码
         List<String> passwords = PasswordReader.readPasswords(passwordFilePath);
         //解压文件
-        boolean flag = ZipUtil.crackZipFile(zipFileFullName, filePath, passwords);
+        boolean flag;
+        if (status.equals("1")) {
+            flag = ZipUtil.batchUnzipFiles(folderPath, filePath, passwords);
+        } else {
+            flag = ZipUtil.crackZipFile(zipFileFullName, filePath, passwords);
+        }
         if (flag) {
             log.info("解压成功");
             return "解压成功";
