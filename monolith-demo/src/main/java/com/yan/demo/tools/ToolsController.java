@@ -2,6 +2,7 @@ package com.yan.demo.tools;
 
 import com.yan.demo.common.utils.RResult;
 import com.yan.demo.tools.rmbconvert.RMBUtil;
+import com.yan.demo.tools.zipfileextractor.ArchiveUtil;
 import com.yan.demo.tools.zipfileextractor.PasswordReader;
 import com.yan.demo.tools.zipfileextractor.ZipUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -76,7 +77,7 @@ public class ToolsController {
         //解压文件
         boolean flag;
         if (status.equals("1")) {
-            flag = ZipUtil.batchUnzipFiles(folderPath, filePath, passwords);
+            flag = ArchiveUtil.batchExtractFiles(folderPath, filePath, passwords);
         } else {
             flag = ZipUtil.crackZipFile(zipFileFullName, filePath, passwords);
         }
