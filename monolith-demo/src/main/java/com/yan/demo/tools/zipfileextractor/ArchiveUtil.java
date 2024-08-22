@@ -43,6 +43,7 @@ public class ArchiveUtil {
                 log.info("成功解压文件 {}", fileFullName);
             } else {
                 log.error("无法解压文件 {}，没有找到有效的密码", fileFullName);
+                return false;
             }
         }
         return true;

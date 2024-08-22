@@ -2,6 +2,7 @@ package com.yan.demo.tools;
 
 import com.yan.demo.common.utils.RResult;
 import com.yan.demo.tools.rmbconvert.RMBUtil;
+import com.yan.demo.tools.textfile.TextFileUtils;
 import com.yan.demo.tools.zipfileextractor.ArchiveUtil;
 import com.yan.demo.tools.zipfileextractor.PasswordReader;
 import com.yan.demo.tools.zipfileextractor.ZipUtil;
@@ -45,6 +46,8 @@ public class ToolsController {
         String normalize = Normalizer.normalize(text.replaceAll("[\\p{C}\\p{Z}]", ""), Normalizer.Form.NFKC);
         // 创建替换映射
         Map<String, String> replacements = new HashMap<>();
+        replacements.put(",", "，");
+        replacements.put(":", "：");
         replacements.put("接又", "接口");
         replacements.put("窗又", "窗口");
         // 可以在这里添加更多的替换项
@@ -70,13 +73,14 @@ public class ToolsController {
         String filePath = request.get("filePath");
         //密码路径
         String passwordFilePath = request.get("passwordFilePath");
-        String status = request.get("status");
+        //类型
+        String type = request.get("type");
         String folderPath = request.get("folderPath");
         //获取密码
         List<String> passwords = PasswordReader.readPasswords(passwordFilePath);
         //解压文件
         boolean flag;
-        if (status.equals("1")) {
+        if (type.equals("1")) {
             flag = ArchiveUtil.batchExtractFiles(folderPath, filePath, passwords);
         } else {
             flag = ZipUtil.crackZipFile(zipFileFullName, filePath, passwords);
@@ -90,5 +94,12 @@ public class ToolsController {
         }
     }
 
+    @PostMapping("/merge/text")
+    @Operation(summary = "合并文件", description = "将两个txt文件合并成一个，移除重复")
+    public RResult<Boolean> merge(@RequestBody HashMap<String, String> request) {
+        return RResult.success(TextFileUtils.mergeTextFiles(request.get("file1Path"), request.get("file2Path"), request.get("outputFilePath")));
+    }
+
 
 }
+
