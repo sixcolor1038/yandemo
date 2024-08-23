@@ -40,7 +40,7 @@ public class ScheduledTasks {
     private CommonMapper commonMapper;
 
     //将某个文件夹下的图片都统计出来，每小时统计一次，将总数更新到数据库
-    //@Scheduled(cron = "0 0/60 * * * ? ")
+    //@Scheduled(cron = "0 0 * * * ?")
     @Transactional(rollbackFor = Exception.class)
     public void updateImageCount() {
         CommonRec commonRec = commonMapper.queryCommonRec(CommonRec.builder().id(2L).build());
@@ -74,7 +74,7 @@ public class ScheduledTasks {
     }
 
     //每小时获取一次edge浏览器的历史记录数量，并更新进数据库
-    @Scheduled(cron = "0 0/60 * * * ? ")
+    @Scheduled(cron = "0 0 * * * ?")
     @Transactional(rollbackFor = Exception.class)
     public void updateEdgeHistoryCount() {
         try {
