@@ -1,7 +1,10 @@
 package com.yan.demo.tools;
 
 import com.yan.demo.common.utils.RResult;
+import com.yan.demo.tools.entity.WdPointsTally;
+import com.yan.demo.tools.entity.req.WdPointsTallyReq;
 import com.yan.demo.tools.rmbconvert.RMBUtil;
+import com.yan.demo.tools.service.WdService;
 import com.yan.demo.tools.textfile.TextFileUtils;
 import com.yan.demo.tools.zipfileextractor.ArchiveUtil;
 import com.yan.demo.tools.zipfileextractor.PasswordReader;
@@ -10,11 +13,15 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.Normalizer;
+import java.time.LocalDate;
+import java.time.Year;
+import java.time.temporal.WeekFields;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +37,9 @@ import java.util.Map;
 public class ToolsController {
 
     private static final Logger log = LoggerFactory.getLogger(ToolsController.class);
+
+    @Autowired
+    private WdService wdService;
 
     @GetMapping("/rmbConvert")
     @Operation(summary = "数字转换成大写", description = "数字转换成大写")
@@ -99,6 +109,28 @@ public class ToolsController {
     public RResult<Boolean> merge(@RequestBody HashMap<String, String> request) {
         return RResult.success(TextFileUtils.mergeTextFiles(request.get("file1Path"), request.get("file2Path"), request.get("outputFilePath")));
     }
+
+
+    @PostMapping("/wd/points")
+    @Operation(summary = "wd积分统计", description = "")
+    public RResult<WdPointsTally> pointsTally(WdPointsTallyReq WdPointsTallyReq) {
+
+        return RResult.success(wdService.insert(WdPointsTallyReq));
+    }
+
+    /**
+     * 通过ID查询单条数据
+     *
+     * @param id 主键
+     * @return 实例对象
+     */
+    @Operation(summary = "通过ID查询单条数据")
+    @GetMapping("{id}")
+    public RResult<WdPointsTally> queryById(Integer id){
+        return RResult.success(wdService.queryById(id));
+    }
+
+
 
 
 }

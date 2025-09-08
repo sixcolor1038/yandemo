@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.yan.demo.tools.mapper.WdMapper">
+    <!-- 通过ID查询单条数据 -->
+    <select id="queryById" resultType="com.yan.demo.tools.entity.WdPointsTally">
+        select
+            ID,DAY1,DAY2,DAY3,DAY4,DAY5,DAY6,DAY7,TALLY_DATE,WEEK_TALLY
+        from WD_POINTS_TALLY
+        where ID = #{id}
+    </select>
+
+    <!--新增数据-->
+    <insert id="insert" keyProperty="ID" useGeneratedKeys="true">
+        insert into WD_POINTS_TALLY(ID,DAY1,DAY2,DAY3,DAY4,DAY5,DAY6,DAY7,TALLY_DATE,WEEK_TALLY)
+        values (#{id},#{day1},#{day2},#{day3},#{day4},#{day5},#{day6},#{day7},#{tallyDate},#{weekTally})
+    </insert>
+
+    <!-- 批量新增数据 -->
+    <insert id="insertBatch" keyProperty="ID" useGeneratedKeys="true">
+        insert into WD_POINTS_TALLY(ID,DAY1,DAY2,DAY3,DAY4,DAY5,DAY6,DAY7,TALLY_DATE,WEEK_TALLY)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+            (#{entity.id},#{entity.day1},#{entity.day2},#{entity.day3},#{entity.day4},#{entity.day5},#{entity.day6},#{entity.day7},#{entity.tallyDate},#{entity.weekTally})
+        </foreach>
+    </insert>
+
+    <!-- 批量新增或按主键更新数据 -->
+    <insert id="insertOrUpdateBatch" keyProperty="ID" useGeneratedKeys="true">
+        insert into WD_POINTS_TALLY(ID,DAY1,DAY2,DAY3,DAY4,DAY5,DAY6,DAY7,TALLY_DATE,WEEK_TALLY)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+            (#{entity.id},#{entity.day1},#{entity.day2},#{entity.day3},#{entity.day4},#{entity.day5},#{entity.day6},#{entity.day7},#{entity.tallyDate},#{entity.weekTally})
+        </foreach>
+        on duplicate key update
+        ID=values(ID),
+        DAY1=values(DAY1),
+        DAY2=values(DAY2),
+        DAY3=values(DAY3),
+        DAY4=values(DAY4),
+        DAY5=values(DAY5),
+        DAY6=values(DAY6),
+        DAY7=values(DAY7),
+        TALLY_DATE=values(TALLY_DATE),
+        WEEK_TALLY=values(WEEK_TALLY)
+    </insert>
+
+    <!-- 更新数据 -->
+    <update id="update">
+        update WD_POINTS_TALLY
+        <set>
+            <if test="id != null and id != ''">
+                ID = #{id},
+            </if>
+            <if test="day1 != null and day1 != ''">
+                DAY1 = #{day1},
+            </if>
+            <if test="day2 != null and day2 != ''">
+                DAY2 = #{day2},
+            </if>
+            <if test="day3 != null and day3 != ''">
+                DAY3 = #{day3},
+            </if>
+            <if test="day4 != null and day4 != ''">
+                DAY4 = #{day4},
+            </if>
+            <if test="day5 != null and day5 != ''">
+                DAY5 = #{day5},
+            </if>
+            <if test="day6 != null and day6 != ''">
+                DAY6 = #{day6},
+            </if>
+            <if test="day7 != null and day7 != ''">
+                DAY7 = #{day7},
+            </if>
+            <if test="tallyDate != null and tallyDate != ''">
+                TALLY_DATE = #{tallyDate},
+            </if>
+            <if test="weekTally != null and weekTally != ''">
+                WEEK_TALLY = #{weekTally},
+            </if>
+        </set>
+        where ID = #{id}
+    </update>
+
+</mapper>
