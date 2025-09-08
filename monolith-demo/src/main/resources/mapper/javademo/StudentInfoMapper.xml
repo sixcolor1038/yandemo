@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.yan.demo.javademo.mapper.StudentInfoMapper">
+    <resultMap type="com.yan.demo.javademo.entity.StudentInfo" id="StudentInfoMap">
+        <result property="studentInfoId" column="STUDENT_INFO_ID" jdbcType="VARCHAR"/>
+        <result property="studentNo" column="STUDENT_NO" jdbcType="VARCHAR"/>
+        <result property="studentName" column="STUDENT_NAME" jdbcType="VARCHAR"/>
+        <result property="gender" column="GENDER" jdbcType="VARCHAR"/>
+        <result property="birthDate" column="BIRTH_DATE" jdbcType="DATE"/>
+        <result property="phoneNumber" column="PHONE_NUMBER" jdbcType="VARCHAR"/>
+        <result property="qqNo" column="QQ_NO" jdbcType="VARCHAR"/>
+        <result property="hobby" column="HOBBY" jdbcType="VARCHAR"/>
+        <result property="familyAddress" column="FAMILY_ADDRESS" jdbcType="VARCHAR"/>
+        <result property="email" column="EMAIL" jdbcType="VARCHAR"/>
+        <result property="majorNo" column="MAJOR_NO" jdbcType="VARCHAR"/>
+        <result property="schoolCode" column="SCHOOL_CODE" jdbcType="VARCHAR"/>
+        <result property="collegeCode" column="COLLEGE_CODE" jdbcType="VARCHAR"/>
+        <result property="classCode" column="CLASS_CODE" jdbcType="VARCHAR"/>
+        <result property="enrollDate" column="ENROLL_DATE" jdbcType="DATE"/>
+        <result property="sidCard" column="SID_CARD" jdbcType="VARCHAR"/>
+        <result property="bankNo" column="BANK_NO" jdbcType="VARCHAR"/>
+        <result property="studentDesc" column="STUDENT_DESC" jdbcType="VARCHAR"/>
+        <result property="enrollStatus" column="ENROLL_STATUS" jdbcType="VARCHAR"/>
+        <result property="graduationTime" column="GRADUATION_TIME" jdbcType="DATE"/>
+        <result property="remark" column="REMARK" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <!-- 通过ID查询单条数据 -->
+    <select id="queryById" resultMap="StudentInfoMap">
+        select
+            STUDENT_INFO_ID,STUDENT_NO,STUDENT_NAME,GENDER,BIRTH_DATE,PHONE_NUMBER,QQ_NO,HOBBY,FAMILY_ADDRESS,EMAIL,MAJOR_NO,SCHOOL_CODE,COLLEGE_CODE,CLASS_CODE,ENROLL_DATE,SID_CARD,BANK_NO,STUDENT_DESC,ENROLL_STATUS,GRADUATION_TIME,REMARK
+        from STUDENT_INFO
+        where STUDENT_INFO_ID = #{studentInfoId}
+    </select>
+
+    <!--分页查询指定行数据-->
+    <select id="queryAllByLimit" resultType="com.yan.demo.javademo.entity.StudentInfo">
+        select
+        STUDENT_INFO_ID,STUDENT_NO,STUDENT_NAME,GENDER,BIRTH_DATE,PHONE_NUMBER,QQ_NO,HOBBY,FAMILY_ADDRESS,EMAIL,MAJOR_NO,SCHOOL_CODE,COLLEGE_CODE,CLASS_CODE,ENROLL_DATE,SID_CARD,BANK_NO,STUDENT_DESC,ENROLL_STATUS,GRADUATION_TIME,REMARK
+        from STUDENT_INFO
+        <where>
+            <if test="studentInfoId != null and studentInfoId != ''">
+                and STUDENT_INFO_ID = #{studentInfoId}
+            </if>
+            <if test="studentNo != null and studentNo != ''">
+                and STUDENT_NO = #{studentNo}
+            </if>
+            <if test="studentName != null and studentName != ''">
+                and STUDENT_NAME = #{studentName}
+            </if>
+            <if test="gender != null and gender != ''">
+                and GENDER = #{gender}
+            </if>
+            <if test="birthDate != null and birthDate != ''">
+                and BIRTH_DATE = #{birthDate}
+            </if>
+            <if test="phoneNumber != null and phoneNumber != ''">
+                and PHONE_NUMBER = #{phoneNumber}
+            </if>
+            <if test="qqNo != null and qqNo != ''">
+                and QQ_NO = #{qqNo}
+            </if>
+            <if test="hobby != null and hobby != ''">
+                and HOBBY = #{hobby}
+            </if>
+            <if test="familyAddress != null and familyAddress != ''">
+                and FAMILY_ADDRESS = #{familyAddress}
+            </if>
+            <if test="email != null and email != ''">
+                and EMAIL = #{email}
+            </if>
+            <if test="majorNo != null and majorNo != ''">
+                and MAJOR_NO = #{majorNo}
+            </if>
+            <if test="schoolCode != null and schoolCode != ''">
+                and SCHOOL_CODE = #{schoolCode}
+            </if>
+            <if test="collegeCode != null and collegeCode != ''">
+                and COLLEGE_CODE = #{collegeCode}
+            </if>
+            <if test="classCode != null and classCode != ''">
+                and CLASS_CODE = #{classCode}
+            </if>
+            <if test="enrollDate != null and enrollDate != ''">
+                and ENROLL_DATE = #{enrollDate}
+            </if>
+            <if test="sidCard != null and sidCard != ''">
+                and SID_CARD = #{sidCard}
+            </if>
+            <if test="bankNo != null and bankNo != ''">
+                and BANK_NO = #{bankNo}
+            </if>
+            <if test="studentDesc != null and studentDesc != ''">
+                and STUDENT_DESC = #{studentDesc}
+            </if>
+            <if test="enrollStatus != null and enrollStatus != ''">
+                and ENROLL_STATUS = #{enrollStatus}
+            </if>
+            <if test="graduationTime != null and graduationTime != ''">
+                and GRADUATION_TIME = #{graduationTime}
+            </if>
+            <if test="remark != null and remark != ''">
+                and REMARK = #{remark}
+            </if>
+        </where>
+        limit #{pageNo}, #{pageSize}
+    </select>
+
+    <!--统计总行数-->
+    <select id="count" resultType="java.lang.Long">
+        select count(1)
+        from STUDENT_INFO
+        <where>
+            <if test="studentInfoId != null and studentInfoId != ''">
+                and STUDENT_INFO_ID = #{studentInfoId}
+            </if>
+            <if test="studentNo != null and studentNo != ''">
+                and STUDENT_NO = #{studentNo}
+            </if>
+            <if test="studentName != null and studentName != ''">
+                and STUDENT_NAME = #{studentName}
+            </if>
+            <if test="gender != null and gender != ''">
+                and GENDER = #{gender}
+            </if>
+            <if test="birthDate != null and birthDate != ''">
+                and BIRTH_DATE = #{birthDate}
+            </if>
+            <if test="phoneNumber != null and phoneNumber != ''">
+                and PHONE_NUMBER = #{phoneNumber}
+            </if>
+            <if test="qqNo != null and qqNo != ''">
+                and QQ_NO = #{qqNo}
+            </if>
+            <if test="hobby != null and hobby != ''">
+                and HOBBY = #{hobby}
+            </if>
+            <if test="familyAddress != null and familyAddress != ''">
+                and FAMILY_ADDRESS = #{familyAddress}
+            </if>
+            <if test="email != null and email != ''">
+                and EMAIL = #{email}
+            </if>
+            <if test="majorNo != null and majorNo != ''">
+                and MAJOR_NO = #{majorNo}
+            </if>
+            <if test="schoolCode != null and schoolCode != ''">
+                and SCHOOL_CODE = #{schoolCode}
+            </if>
+            <if test="collegeCode != null and collegeCode != ''">
+                and COLLEGE_CODE = #{collegeCode}
+            </if>
+            <if test="classCode != null and classCode != ''">
+                and CLASS_CODE = #{classCode}
+            </if>
+            <if test="enrollDate != null and enrollDate != ''">
+                and ENROLL_DATE = #{enrollDate}
+            </if>
+            <if test="sidCard != null and sidCard != ''">
+                and SID_CARD = #{sidCard}
+            </if>
+            <if test="bankNo != null and bankNo != ''">
+                and BANK_NO = #{bankNo}
+            </if>
+            <if test="studentDesc != null and studentDesc != ''">
+                and STUDENT_DESC = #{studentDesc}
+            </if>
+            <if test="enrollStatus != null and enrollStatus != ''">
+                and ENROLL_STATUS = #{enrollStatus}
+            </if>
+            <if test="graduationTime != null and graduationTime != ''">
+                and GRADUATION_TIME = #{graduationTime}
+            </if>
+            <if test="remark != null and remark != ''">
+                and REMARK = #{remark}
+            </if>
+        </where>
+    </select>
+
+    <!--新增数据-->
+    <insert id="insert"  useGeneratedKeys="true"  parameterType="com.yan.demo.javademo.entity.StudentInfo">
+        insert into STUDENT_INFO(STUDENT_INFO_ID,STUDENT_NO,STUDENT_NAME,GENDER,BIRTH_DATE,PHONE_NUMBER,QQ_NO,HOBBY,FAMILY_ADDRESS,EMAIL,MAJOR_NO,SCHOOL_CODE,COLLEGE_CODE,CLASS_CODE,ENROLL_DATE,SID_CARD,BANK_NO,STUDENT_DESC,ENROLL_STATUS,GRADUATION_TIME,REMARK)
+        values (#{studentInfoId},#{studentNo},#{studentName},#{gender},#{birthDate},#{phoneNumber},#{qqNo},#{hobby},#{familyAddress},#{email},#{majorNo},#{schoolCode},#{collegeCode},#{classCode},#{enrollDate},#{sidCard},#{bankNo},#{studentDesc},#{enrollStatus},#{graduationTime},#{remark})
+    </insert>
+
+    <!-- 批量新增数据 -->
+    <insert id="insertBatch" keyProperty="STUDENT_INFO_ID" useGeneratedKeys="true">
+        insert into STUDENT_INFO(STUDENT_INFO_ID,STUDENT_NO,STUDENT_NAME,GENDER,BIRTH_DATE,PHONE_NUMBER,QQ_NO,HOBBY,FAMILY_ADDRESS,EMAIL,MAJOR_NO,SCHOOL_CODE,COLLEGE_CODE,CLASS_CODE,ENROLL_DATE,SID_CARD,BANK_NO,STUDENT_DESC,ENROLL_STATUS,GRADUATION_TIME,REMARK)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+            (#{entity.studentInfoId},#{entity.studentNo},#{entity.studentName},#{entity.gender},#{entity.birthDate},#{entity.phoneNumber},#{entity.qqNo},#{entity.hobby},#{entity.familyAddress},#{entity.email},#{entity.majorNo},#{entity.schoolCode},#{entity.collegeCode},#{entity.classCode},#{entity.enrollDate},#{entity.sidCard},#{entity.bankNo},#{entity.studentDesc},#{entity.enrollStatus},#{entity.graduationTime},#{entity.remark})
+        </foreach>
+    </insert>
+
+    <!-- 批量新增或按主键更新数据 -->
+    <insert id="insertOrUpdateBatch" keyProperty="STUDENT_INFO_ID" useGeneratedKeys="true">
+        insert into STUDENT_INFO(STUDENT_INFO_ID,STUDENT_NO,STUDENT_NAME,GENDER,BIRTH_DATE,PHONE_NUMBER,QQ_NO,HOBBY,FAMILY_ADDRESS,EMAIL,MAJOR_NO,SCHOOL_CODE,COLLEGE_CODE,CLASS_CODE,ENROLL_DATE,SID_CARD,BANK_NO,STUDENT_DESC,ENROLL_STATUS,GRADUATION_TIME,REMARK)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+            (#{entity.studentInfoId},#{entity.studentNo},#{entity.studentName},#{entity.gender},#{entity.birthDate},#{entity.phoneNumber},#{entity.qqNo},#{entity.hobby},#{entity.familyAddress},#{entity.email},#{entity.majorNo},#{entity.schoolCode},#{entity.collegeCode},#{entity.classCode},#{entity.enrollDate},#{entity.sidCard},#{entity.bankNo},#{entity.studentDesc},#{entity.enrollStatus},#{entity.graduationTime},#{entity.remark})
+        </foreach>
+        on duplicate key update
+        STUDENT_INFO_ID=values(STUDENT_INFO_ID),
+        STUDENT_NO=values(STUDENT_NO),
+        STUDENT_NAME=values(STUDENT_NAME),
+        GENDER=values(GENDER),
+        BIRTH_DATE=values(BIRTH_DATE),
+        PHONE_NUMBER=values(PHONE_NUMBER),
+        QQ_NO=values(QQ_NO),
+        HOBBY=values(HOBBY),
+        FAMILY_ADDRESS=values(FAMILY_ADDRESS),
+        EMAIL=values(EMAIL),
+        MAJOR_NO=values(MAJOR_NO),
+        SCHOOL_CODE=values(SCHOOL_CODE),
+        COLLEGE_CODE=values(COLLEGE_CODE),
+        CLASS_CODE=values(CLASS_CODE),
+        ENROLL_DATE=values(ENROLL_DATE),
+        SID_CARD=values(SID_CARD),
+        BANK_NO=values(BANK_NO),
+        STUDENT_DESC=values(STUDENT_DESC),
+        ENROLL_STATUS=values(ENROLL_STATUS),
+        GRADUATION_TIME=values(GRADUATION_TIME),
+        REMARK=values(REMARK)
+    </insert>
+
+    <!-- 更新数据 -->
+    <update id="update">
+        update STUDENT_INFO
+        <set>
+            <if test="studentInfoId != null and studentInfoId != ''">
+                STUDENT_INFO_ID = #{studentInfoId},
+            </if>
+            <if test="studentNo != null and studentNo != ''">
+                STUDENT_NO = #{studentNo},
+            </if>
+            <if test="studentName != null and studentName != ''">
+                STUDENT_NAME = #{studentName},
+            </if>
+            <if test="gender != null and gender != ''">
+                GENDER = #{gender},
+            </if>
+            <if test="birthDate != null and birthDate != ''">
+                BIRTH_DATE = #{birthDate},
+            </if>
+            <if test="phoneNumber != null and phoneNumber != ''">
+                PHONE_NUMBER = #{phoneNumber},
+            </if>
+            <if test="qqNo != null and qqNo != ''">
+                QQ_NO = #{qqNo},
+            </if>
+            <if test="hobby != null and hobby != ''">
+                HOBBY = #{hobby},
+            </if>
+            <if test="familyAddress != null and familyAddress != ''">
+                FAMILY_ADDRESS = #{familyAddress},
+            </if>
+            <if test="email != null and email != ''">
+                EMAIL = #{email},
+            </if>
+            <if test="majorNo != null and majorNo != ''">
+                MAJOR_NO = #{majorNo},
+            </if>
+            <if test="schoolCode != null and schoolCode != ''">
+                SCHOOL_CODE = #{schoolCode},
+            </if>
+            <if test="collegeCode != null and collegeCode != ''">
+                COLLEGE_CODE = #{collegeCode},
+            </if>
+            <if test="classCode != null and classCode != ''">
+                CLASS_CODE = #{classCode},
+            </if>
+            <if test="enrollDate != null and enrollDate != ''">
+                ENROLL_DATE = #{enrollDate},
+            </if>
+            <if test="sidCard != null and sidCard != ''">
+                SID_CARD = #{sidCard},
+            </if>
+            <if test="bankNo != null and bankNo != ''">
+                BANK_NO = #{bankNo},
+            </if>
+            <if test="studentDesc != null and studentDesc != ''">
+                STUDENT_DESC = #{studentDesc},
+            </if>
+            <if test="enrollStatus != null and enrollStatus != ''">
+                ENROLL_STATUS = #{enrollStatus},
+            </if>
+            <if test="graduationTime != null and graduationTime != ''">
+                GRADUATION_TIME = #{graduationTime},
+            </if>
+            <if test="remark != null and remark != ''">
+                REMARK = #{remark},
+            </if>
+        </set>
+        where STUDENT_INFO_ID = #{studentInfoId}
+    </update>
+
+    <!--通过主键删除-->
+    <delete id="deleteById">
+        delete from STUDENT_INFO where STUDENT_INFO_ID = #{studentInfoId}
+    </delete>
+</mapper>
