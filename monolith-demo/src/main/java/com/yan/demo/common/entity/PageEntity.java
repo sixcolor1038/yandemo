@@ -5,7 +5,7 @@ package com.yan.demo.common.entity;
  * @Date: 2024-05-01 8:51
  * @Description:
  */
-public abstract class BaseEntity {
+public abstract class PageEntity {
     private int pageNo = 1;
 
     private int pageSize = 10;

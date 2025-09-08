@@ -7,6 +7,7 @@ import com.yan.demo.common.utils.CheckVerifyUtil;
 import com.yan.demo.common.utils.FileUtils;
 import com.yan.demo.common.utils.MapUtils;
 import com.yan.demo.common.utils.ObjectUtils;
+import com.yan.demo.easydemo.ChineseCharacterCountInFolder;
 import com.yan.demo.javademo.ao.RenameFileAO;
 import com.yan.demo.javademo.entity.CommonRec;
 import com.yan.demo.javademo.mapper.CommonMapper;
@@ -17,7 +18,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -90,7 +94,7 @@ public class ScheduledTasks {
             log.info("Edge历史记录条数: {}", count);
             // 更新数据库中的记录
             String time = LocalDateTime.now().format(DateConstant.DATE_TIME_FORMAT);
-            commonMapper.updateCommonRec(CommonRec
+            /*commonMapper.updateCommonRec(CommonRec
                     .builder()
                     .id(6L)
                     .name("Edge历史记录条数")
@@ -98,7 +102,18 @@ public class ScheduledTasks {
                     .remark("当前更新时间:" + time)
                     .build());
 
-            log.info("记录已更新,更新时间: {}", time);
+            log.info("记录已更新,更新时间: {}", time);*/
+
+            //新增数据库中的记录
+            commonMapper.addCommonRec(CommonRec
+                    .builder()
+                    .code("6")
+                    .name("Edge历史记录条数")
+                    .value(String.valueOf(count))
+                    .remark("当前新增时间:" + time)
+                    .build());
+            log.info("记录已新增,新增时间: {}", time);
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -134,5 +149,52 @@ public class ScheduledTasks {
         return count;
     }
 
+    //将某个文件夹下的文件字数进行统计，定期更新到数据库
+    @Scheduled(cron = "0 0 * * * ?")
+    @Transactional(rollbackFor = Exception.class)
+    public void updateDiaryWordCount() throws IOException {
+        //查出需统计的文件夹
+        CommonRec commonRec = commonMapper.queryCommonRec(CommonRec.builder().id(11L).build());
+        String remark = commonRec.getRemark();
+        File folder = new File(remark);
+        int totalChineseCharCount = traverseAndCount(folder);
+        log.info("------当前文件夹下总汉字数 {}: {}", remark, totalChineseCharCount);
+        String time = LocalDateTime.now().format(DateConstant.DATE_TIME_FORMAT);
+
+        commonMapper.addCommonRec(CommonRec.builder()
+                .code("11").name(commonRec.getName())
+                .value(String.valueOf(totalChineseCharCount))
+                .remark("当前新增时间:" + time).build());
+        log.info("数据已插入，当前新增时间：{}", time);
+    }
+
+    private static int traverseAndCount(File dir) throws IOException {
+        int totalChineseChars = 0;
+        File[] files = dir.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isFile()) {
+                    int charCount = countChineseCharactersInFile(file);
+                    //System.out.println(file.getName() + " 字数: " + charCount);
+                    totalChineseChars += charCount;
+                } else if (file.isDirectory()) {
+                    totalChineseChars += traverseAndCount(file);
+                }
+            }
+        }
+        return totalChineseChars;
+    }
+    private static int countChineseCharactersInFile(File file) throws IOException {
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            int chineseCharCount = 0;
+            String line;
+            while ((line = reader.readLine()) != null) {
+
+                line = line.replaceAll("[^一-龥]", "");
+                chineseCharCount += line.length();
+            }
+            return chineseCharCount;
+        }
+    }
 
 }
