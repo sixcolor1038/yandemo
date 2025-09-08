@@ -135,4 +135,14 @@ public class DemoController extends AbstractController {
 
         return RResult.success(demoService.easyCall(ao));
     }
+
+    public static void main(String[] args) {
+        double a = 1;
+        for (int i = 1; i < 201; i++) {
+            a = a * 1.3;
+            System.out.println("第"+i+"次："+a);
+        }
+    }
+
+
 }
