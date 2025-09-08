@@ -5,8 +5,8 @@
 
     <!--新增数据-->
     <insert id="addCommonRec" parameterType="com.yan.demo.javademo.entity.CommonRec">
-        insert into COMMON_REC(ID,CODE,NAME,TYPE,VALUE,REMARK)
-        values (#{id},#{code},#{name},#{type},#{value},#{remark})
+        insert into COMMON_REC(ID, CODE, NAME, TYPE, VALUE, REMARK)
+        values (#{id}, #{code}, #{name}, #{type}, #{value}, #{remark})
     </insert>
     <!-- 更新数据 -->
     <update id="updateCommonRec" parameterType="com.yan.demo.javademo.entity.CommonRec">
@@ -36,10 +36,12 @@
     <select id="queryCommonRec" resultType="com.yan.demo.javademo.entity.CommonRec">
         select *
         from COMMON_REC
-       where ID = #{id}
+        where ID = #{id}
     </select>
     <!--通过主键删除-->
     <delete id="deleteCommonRecById">
-        delete from COMMON_REC where ID = #{id}
+        delete
+        from COMMON_REC
+        where ID = #{id}
     </delete>
 </mapper>

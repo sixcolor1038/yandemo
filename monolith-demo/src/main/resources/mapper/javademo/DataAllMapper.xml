@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.yan.demo.javademo.mapper.DataAllMapper">
+
+    <!-- 通过ID查询单条数据 -->
+    <select id="queryById" resultType="com.yan.demo.javademo.entity.DataAll">
+        select
+            ID,TYPE,P_ID,DESCRIPTION,CREATED_BY,CREATED_TIME,UPDATED_BY,UPDATED_TIME,
+            DATA1,DATA2,DATA3,DATA4,DATA5,DATA6,DATA7,DATA8,DATA9,DATA10,DATA11,DATA12,
+            DATA13,DATA14,DATA15,DATA16,DATA17,DATA18,DATA19,DATA20,DATA21,DATA22,DATA23,
+            DATA24,DATA25,DATA26,DATA27,DATA28,DATA29,DATA30
+        from DATA_ALL
+        where ID = #{id}
+    </select>
+
+
+</mapper>

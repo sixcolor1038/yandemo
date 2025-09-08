@@ -1,8 +1,8 @@
 package com.yan.demo.javademo.ao;
 
-import com.yan.demo.common.entity.BaseEntity;
+import com.yan.demo.common.entity.PageEntity;
 
-public class AreaAO extends BaseEntity {
+public class AreaAO extends PageEntity {
 
     private Integer id;
     private String parentId;
