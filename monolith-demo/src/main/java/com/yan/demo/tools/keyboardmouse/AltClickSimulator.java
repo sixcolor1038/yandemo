@@ -80,16 +80,11 @@ public class AltClickSimulator {
             int clickDuration = 50;  // 点击持续时间
             int rightKeyDelay = 100; // 右键按下时间
 
-            // 设置鼠标点击位置（请根据您的需要修改这些坐标）
+            // 设置鼠标点击位置
             int clickX = 700;
             int clickY = 550;
 
-            System.out.println("请在3秒内切换到目标应用程序（图片查看器）...");
-
-            // 初始延迟
-            robot.delay(initialDelay);
-
-            // 模拟Alt+Tab切换回上一个应用程序（应该是您的图片查看器）
+            // 模拟Alt+Tab切换回上一个应用程序
             robot.keyPress(KeyEvent.VK_ALT);
             robot.delay(50);
             robot.keyPress(KeyEvent.VK_TAB);
@@ -99,6 +94,9 @@ public class AltClickSimulator {
             robot.keyRelease(KeyEvent.VK_ALT);
 
             System.out.println("已切换回目标应用程序");
+
+            // 初始延迟
+            robot.delay(initialDelay);
 
             int count = 50;
             long totalOperationTime = 0; // 记录总操作时间（不包括随机延迟）
