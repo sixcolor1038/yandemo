@@ -76,7 +76,7 @@ public class AltClickSimulator {
             Random random = new Random();
 
             // 设置延迟时间（毫秒）
-            int initialDelay = 3000; // 初始延迟
+            //int initialDelay = 2000; // 初始延迟
             int clickDuration = 50;  // 点击持续时间
             int rightKeyDelay = 100; // 右键按下时间
 
@@ -96,7 +96,7 @@ public class AltClickSimulator {
             System.out.println("已切换回目标应用程序");
 
             // 初始延迟
-            robot.delay(initialDelay);
+           // robot.delay(initialDelay);
 
             int count = 50;
             long totalOperationTime = 0; // 记录总操作时间（不包括随机延迟）
@@ -140,7 +140,7 @@ public class AltClickSimulator {
                     totalOperationTime += loopOperationTime;
 
                     // 生成3.5秒到5秒之间的随机延迟（3500-5000毫秒）
-                    int randomDelay = 3500 + random.nextInt(1501); // 3500 + [0,1500] = [3500,5000]
+                    int randomDelay = 1000 + random.nextInt(1501); // 3500 + [0,1500] = [3500,5000]
                     double randomDelayInSeconds = randomDelay / 1000.0;
 
                     System.out.println("已完成第 " + i + " 次循环，操作耗时: " + loopOperationTime + "ms, 等待" +
@@ -170,7 +170,7 @@ public class AltClickSimulator {
                     lastActivityTime.set(System.currentTimeMillis());
 
                     // 短暂延迟后继续
-                    robot.delay(1000);
+                    robot.delay(600);
                 }
             }
 
@@ -184,10 +184,10 @@ public class AltClickSimulator {
             System.out.println("平均每次循环操作时间: " + (totalOperationTime / count) + "ms");
 
             // 提醒方式1：播放系统提示音
-            for (int i = 0; i < 3; i++) {
+            /*for (int i = 0; i < 3; i++) {
                 Toolkit.getDefaultToolkit().beep();
                 robot.delay(500); // 提示音之间的延迟
-            }
+            }*/
 
             // 提醒方式2：弹出对话框，显示总耗时
             JOptionPane.showMessageDialog(null,

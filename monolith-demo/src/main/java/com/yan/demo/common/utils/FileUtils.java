@@ -4,12 +4,12 @@ import com.yan.demo.common.constant.DateConstant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -231,6 +231,65 @@ public class FileUtils {
     public static void deleteFile(File file) throws IOException {
         if (!file.delete()) {
             throw new IOException("无法删除文件: " + file.getAbsolutePath());
+        }
+    }
+
+    /**
+     * 筛选文件内容，删除数字<=1的行，保留数字>1的行和没有数字的行
+     *
+     * @param inputFile  输入文件路径
+     * @param outputFile 输出文件路径
+     * @return 是否成功
+     */
+    public static boolean filterFileContent(String inputFile, String outputFile) {
+        List<String> filteredLines = new ArrayList<>();
+
+        try (BufferedReader reader = Files.newBufferedReader(Paths.get(inputFile))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // 跳过空行
+                if (line.trim().isEmpty()) {
+                    continue;
+                }
+
+                // 按制表符分割
+                String[] parts = line.split("\t");
+                if (parts.length >= 3) {
+                    try {
+                        // 获取第三列的数字
+                        int number = Integer.parseInt(parts[2].trim());
+
+                        // 只保留数字 > 1 的行
+                        if (number > 1) {
+                            filteredLines.add(line);
+                        }
+                        // 数字 <= 1 的行不添加到结果中（即删除）
+                    } catch (NumberFormatException e) {
+                        // 如果数字解析失败，保留该行（没有数字的行）
+                        filteredLines.add(line);
+                        log.debug("保留无数字的行: {}", line);
+                    }
+                } else {
+                    // 格式不正确的行（列数不足），也保留
+                    filteredLines.add(line);
+                    log.debug("保留格式不正确的行: {}", line);
+                }
+            }
+        } catch (IOException e) {
+            log.error("读取文件失败: {}", e.getMessage(), e);
+            return false;
+        }
+
+        // 写入筛选后的结果
+        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(outputFile))) {
+            for (String filteredLine : filteredLines) {
+                writer.write(filteredLine);
+                writer.newLine();
+            }
+            return true;
+        } catch (IOException e) {
+            log.error("写入文件失败: {}", e.getMessage(), e);
+            return false;
         }
     }
 

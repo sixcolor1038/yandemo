@@ -1,5 +1,6 @@
 package com.yan.demo.tools;
 
+import com.yan.demo.common.utils.FileUtils;
 import com.yan.demo.common.utils.RResult;
 import com.yan.demo.tools.entity.WdPointsTally;
 import com.yan.demo.tools.entity.req.WdPointsTallyReq;
@@ -16,12 +17,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
+import java.io.*;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.Normalizer;
-import java.time.LocalDate;
-import java.time.Year;
-import java.time.temporal.WeekFields;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -110,11 +111,41 @@ public class ToolsController {
         return RResult.success(TextFileUtils.mergeTextFiles(request.get("file1Path"), request.get("file2Path"), request.get("outputFilePath")));
     }
 
+    /**
+     * 最近在使用rime小狼毫,经常多了一堆自造词,难以管理,而且有些自造词还污染了词库,影响使用
+     * 就写了这个,用来定期处理一些不常用的词汇,能被清理的词汇,清了也不重要
+     * 定期使用即可
+     * @param request
+     * @return
+     */
+    @PostMapping("/filterFile/rime")
+    @Operation(summary = "筛选小狼毫导出用户词典文本码表文件", description = "筛选文件中数字<=1的行，保留数字>1的行和没有数字的行")
+    public RResult<Boolean> filterFile(@RequestBody HashMap<String, String> request) {
+        String inputFile = request.get("inputFile");
+        String outputFile = request.get("outputFile");
+
+        if (inputFile == null || outputFile == null) {
+            return RResult.notFound("输入文件路径和输出文件路径不能为空");
+        }
+
+        try {
+            boolean result = FileUtils.filterFileContent(inputFile, outputFile);
+            if (result) {
+                return RResult.success(true);
+            } else {
+                return RResult.failed();
+            }
+        } catch (Exception e) {
+            log.error("文件筛选出错: {}", e.getMessage(), e);
+            return RResult.failed();
+        }
+    }
+
+
 
     @PostMapping("/wd/points")
     @Operation(summary = "wd积分统计", description = "")
     public RResult<WdPointsTally> pointsTally(WdPointsTallyReq WdPointsTallyReq) {
-
         return RResult.success(wdService.insert(WdPointsTallyReq));
     }
 
@@ -129,9 +160,4 @@ public class ToolsController {
     public RResult<WdPointsTally> queryById(Integer id){
         return RResult.success(wdService.queryById(id));
     }
-
-
-
-
 }
-
