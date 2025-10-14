@@ -9,10 +9,8 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 /**
@@ -241,7 +239,7 @@ public class FileUtils {
      * @param outputFile 输出文件路径
      * @return 是否成功
      */
-    public static boolean filterFileContent(String inputFile, String outputFile) {
+    public static boolean filterFileContent(String inputFile, String outputFile,int num) {
         List<String> filteredLines = new ArrayList<>();
 
         try (BufferedReader reader = Files.newBufferedReader(Paths.get(inputFile))) {
@@ -260,7 +258,7 @@ public class FileUtils {
                         int number = Integer.parseInt(parts[2].trim());
 
                         // 只保留数字 > 1 的行
-                        if (number > 1) {
+                        if (number > num) {
                             filteredLines.add(line);
                         }
                         // 数字 <= 1 的行不添加到结果中（即删除）
@@ -292,5 +290,114 @@ public class FileUtils {
             return false;
         }
     }
+
+    /**
+     * 按照第三列数字大小排序文件
+     *
+     * @param inputFile 输入文件路径
+     * @param outputFile 输出文件路径
+     * @param sortOrder 排序顺序：desc(降序，默认) 或 asc(升序)
+     * @return 是否成功
+     */
+    public static boolean sortFileByNumber(String inputFile, String outputFile, String sortOrder) {
+        // 使用三个列表分别存储不同类型的行，提高排序效率
+        List<LineWithNumber> linesWithNumber = new ArrayList<>();
+        List<String> linesWithoutNumber = new ArrayList<>();
+        AtomicInteger lineCount = new AtomicInteger(0); // 用于记录原始行号
+
+        try {
+            // 使用Files.lines()和流处理提高大文件处理性能
+            Files.lines(Paths.get(inputFile))
+                    .forEach(line -> {
+                        lineCount.incrementAndGet();
+                        // 跳过空行
+                        if (line.trim().isEmpty()) {
+                            return;
+                        }
+
+                        // 按制表符分割
+                        String[] parts = line.split("\t");
+                        if (parts.length >= 3) {
+                            try {
+                                // 获取第三列的数字
+                                int number = Integer.parseInt(parts[2].trim());
+                                // 有数字的行，存储行内容和数字
+                                linesWithNumber.add(new LineWithNumber(line, number, lineCount.get()));
+                            } catch (NumberFormatException e) {
+                                // 如果数字解析失败，作为无数字行处理
+                                linesWithoutNumber.add(line);
+                            }
+                        } else {
+                            // 格式不正确的行，作为无数字行处理
+                            linesWithoutNumber.add(line);
+                        }
+                    });
+
+            log.info("处理完成：有数字行 {}，无数字行 {}", linesWithNumber.size(), linesWithoutNumber.size());
+
+            // 根据排序顺序对数字行进行排序
+            if ("asc".equalsIgnoreCase(sortOrder)) {
+                // 升序排序：先按数字升序，数字相同的按原始行号升序
+                linesWithNumber.sort(Comparator
+                        .comparingInt(LineWithNumber::getNumber)
+                        .thenComparingInt(LineWithNumber::getOriginalLineNumber));
+            } else {
+                // 降序排序：先按数字降序，数字相同的按原始行号升序
+                linesWithNumber.sort(Comparator
+                        .comparingInt(LineWithNumber::getNumber)
+                        .reversed()
+                        .thenComparingInt(LineWithNumber::getOriginalLineNumber));
+            }
+
+            // 写入排序后的结果
+            try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(outputFile))) {
+                // 先写入有数字的行（已排序）
+                for (LineWithNumber lineWithNumber : linesWithNumber) {
+                    writer.write(lineWithNumber.getLine());
+                    writer.newLine();
+                }
+
+                // 再写入无数字的行（保持原始顺序）
+                for (String lineWithoutNumber : linesWithoutNumber) {
+                    writer.write(lineWithoutNumber);
+                    writer.newLine();
+                }
+            }
+
+            return true;
+
+        } catch (IOException e) {
+            log.error("文件排序失败: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * 内部类，用于存储带数字的行，便于排序
+     */
+    private static class LineWithNumber {
+        private final String line;
+        private final int number;
+        private final int originalLineNumber;
+
+        public LineWithNumber(String line, int number, int originalLineNumber) {
+            this.line = line;
+            this.number = number;
+            this.originalLineNumber = originalLineNumber;
+        }
+
+        public String getLine() {
+            return line;
+        }
+
+        public int getNumber() {
+            return number;
+        }
+
+        public int getOriginalLineNumber() {
+            return originalLineNumber;
+        }
+    }
+
 
 }

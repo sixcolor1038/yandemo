@@ -17,12 +17,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.*;
+import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.text.Normalizer;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -115,21 +112,23 @@ public class ToolsController {
      * 最近在使用rime小狼毫,经常多了一堆自造词,难以管理,而且有些自造词还污染了词库,影响使用
      * 就写了这个,用来定期处理一些不常用的词汇,能被清理的词汇,清了也不重要
      * 定期使用即可
+     *
      * @param request
      * @return
      */
     @PostMapping("/filterFile/rime")
-    @Operation(summary = "筛选小狼毫导出用户词典文本码表文件", description = "筛选文件中数字<=1的行，保留数字>1的行和没有数字的行")
+    @Operation(summary = "筛选不常用小狼毫导出用户词典文本码表文件", description = "筛选文件中数字<=1的行，保留数字>1的行和没有数字的行")
     public RResult<Boolean> filterFile(@RequestBody HashMap<String, String> request) {
         String inputFile = request.get("inputFile");
         String outputFile = request.get("outputFile");
-
+        //保留数字大于几
+        int num = 4;
         if (inputFile == null || outputFile == null) {
             return RResult.notFound("输入文件路径和输出文件路径不能为空");
         }
 
         try {
-            boolean result = FileUtils.filterFileContent(inputFile, outputFile);
+            boolean result = FileUtils.filterFileContent(inputFile, outputFile, num);
             if (result) {
                 return RResult.success(true);
             } else {
@@ -141,6 +140,29 @@ public class ToolsController {
         }
     }
 
+    @PostMapping("/sort/file")
+    @Operation(summary = "按数字排序文件", description = "按照第三列数字大小排序文件，没有数字的行放在最后")
+    public RResult<Boolean> sortFile(@RequestBody HashMap<String, String> request) {
+        String inputFile = request.get("inputFile");
+        String outputFile = request.get("outputFile");
+        String sortOrder = request.getOrDefault("sortOrder", "desc"); // desc: 降序, asc: 升序
+
+        if (inputFile == null || outputFile == null) {
+            return RResult.notFound("输入文件路径和输出文件路径不能为空");
+        }
+
+        try {
+            boolean result = FileUtils.sortFileByNumber(inputFile, outputFile, sortOrder);
+            if (result) {
+                return RResult.success(true);
+            } else {
+                return RResult.failed();
+            }
+        } catch (Exception e) {
+            log.error("文件排序出错: {}", e.getMessage(), e);
+            return RResult.failed();
+        }
+    }
 
 
     @PostMapping("/wd/points")
@@ -157,7 +179,9 @@ public class ToolsController {
      */
     @Operation(summary = "通过ID查询单条数据")
     @GetMapping("{id}")
-    public RResult<WdPointsTally> queryById(Integer id){
+    public RResult<WdPointsTally> queryById(Integer id) {
         return RResult.success(wdService.queryById(id));
     }
+
+
 }
