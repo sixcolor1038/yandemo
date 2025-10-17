@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         屏蔽管理
 // @namespace    http://tampermonkey.net/
-// @version      1.2.1
+// @version      1.2.2
 // @description  屏蔽微博、知乎、小红书、B站含关键词的内容和指定用户，支持精准用户ID屏蔽和B站卡片屏蔽，新增知乎低赞内容屏蔽、文章屏蔽和盐选内容屏蔽
 // @match        https://www.zhihu.com/
 // @match        https://www.xiaohongshu.com/*
@@ -213,6 +213,11 @@
                     }
                 }
                 return null;
+            },
+            // 新增：判断是否为用户ID
+            isUserId: function(user) {
+                // 知乎用户ID通常是字母、数字、下划线、减号的组合，且不包含空格
+                return /^[a-zA-Z0-9_-]+$/.test(user) && !/\s/.test(user);
             }
         },
         xiaohongshu: {
@@ -228,6 +233,10 @@
                     return match ? match[1] : null;
                 }
                 return null;
+            },
+            isUserId: function(user) {
+                // 小红书用户ID是24位十六进制
+                return /^[a-f0-9]{24}$/.test(user);
             }
         },
         bilibili: {
@@ -246,6 +255,10 @@
                     }
                 }
                 return null;
+            },
+            isUserId: function(user) {
+                // B站用户ID是纯数字
+                return /^\d+$/.test(user);
             }
         },
         weibo: {
@@ -257,6 +270,10 @@
             userLogPrefix: '已屏蔽微博用户',
             extractUserId: function(userElement) {
                 return null;
+            },
+            isUserId: function(user) {
+                // 微博用户ID比较复杂，这里简单判断是否为数字
+                return /^\d+$/.test(user);
             }
         }
     };
@@ -285,448 +302,448 @@
         // 创建CSS样式
         const style = document.createElement('style');
         style.textContent = `
-        #keyword-blocker-toggle {
-            position: fixed;
-            left: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 10000;
-            background: #1890ff;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 12px 8px;
-            cursor: pointer;
-            font-size: 14px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            transition: all 0.3s ease;
-            writing-mode: vertical-lr;
-            text-orientation: mixed;
-        }
+            #keyword-blocker-toggle {
+                position: fixed;
+                left: 20px;
+                top: 50%;
+                transform: translateY(-50%);
+                z-index: 10000;
+                background: #1890ff;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 12px 8px;
+                cursor: pointer;
+                font-size: 14px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                transition: all 0.3s ease;
+                writing-mode: vertical-lr;
+                text-orientation: mixed;
+            }
 
-        #keyword-blocker-toggle:hover {
-            background: #40a9ff;
-            transform: translateY(-50%) scale(1.05);
-        }
+            #keyword-blocker-toggle:hover {
+                background: #40a9ff;
+                transform: translateY(-50%) scale(1.05);
+            }
 
-        #keyword-blocker-panel {
-            position: fixed;
-            left: -420px;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 9999;
-            width: 390px;
-            max-height: 80vh;
-            background: white;
-            border: 1px solid #d9d9d9;
-            border-radius: 8px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-            transition: left 0.3s ease;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
+            #keyword-blocker-panel {
+                position: fixed;
+                left: -420px;
+                top: 50%;
+                transform: translateY(-50%);
+                z-index: 9999;
+                width: 390px;
+                max-height: 80vh;
+                background: white;
+                border: 1px solid #d9d9d9;
+                border-radius: 8px;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+                transition: left 0.3s ease;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            }
 
-        #keyword-blocker-panel.show {
-            left: 20px;
-        }
+            #keyword-blocker-panel.show {
+                left: 20px;
+            }
 
-        .kb-panel-header {
-            padding: 16px;
-            border-bottom: 1px solid #f0f0f0;
-            background: #fafafa;
-            border-radius: 8px 8px 0 0;
-        }
+            .kb-panel-header {
+                padding: 16px;
+                border-bottom: 1px solid #f0f0f0;
+                background: #fafafa;
+                border-radius: 8px 8px 0 0;
+            }
 
-        .kb-title-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
+            .kb-title-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+            }
 
-        .kb-panel-title {
-            margin: 0;
-            font-size: 16px;
-            font-weight: 500;
-            color: #262626;
-            flex: 1;
-        }
+            .kb-panel-title {
+                margin: 0;
+                font-size: 16px;
+                font-weight: 500;
+                color: #262626;
+                flex: 1;
+            }
 
-        .kb-tab-container {
-            display: flex;
-            margin-bottom: 12px;
-            border-bottom: 1px solid #f0f0f0;
-        }
+            .kb-tab-container {
+                display: flex;
+                margin-bottom: 12px;
+                border-bottom: 1px solid #f0f0f0;
+            }
 
-        .kb-tab {
-            flex: 1;
-            padding: 8px 12px;
-            background: none;
-            border: none;
-            border-bottom: 2px solid transparent;
-            cursor: pointer;
-            font-size: 14px;
-            color: #666;
-            transition: all 0.3s ease;
-        }
+            .kb-tab {
+                flex: 1;
+                padding: 8px 12px;
+                background: none;
+                border: none;
+                border-bottom: 2px solid transparent;
+                cursor: pointer;
+                font-size: 14px;
+                color: #666;
+                transition: all 0.3s ease;
+            }
 
-        .kb-tab.active {
-            color: #1890ff;
-            border-bottom-color: #1890ff;
-            background: #f0f8ff;
-        }
+            .kb-tab.active {
+                color: #1890ff;
+                border-bottom-color: #1890ff;
+                background: #f0f8ff;
+            }
 
-        .kb-tab-content {
-            display: none;
-        }
+            .kb-tab-content {
+                display: none;
+            }
 
-        .kb-tab-content.active {
-            display: block;
-        }
+            .kb-tab-content.active {
+                display: block;
+            }
 
-        .kb-input-group {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 8px;
-        }
+            .kb-input-group {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 8px;
+            }
 
-        .kb-input {
-            flex: 1;
-            padding: 8px 12px;
-            border: 1px solid #d9d9d9;
-            border-radius: 4px;
-            font-size: 14px;
-            outline: none;
-        }
+            .kb-input {
+                flex: 1;
+                padding: 8px 12px;
+                border: 1px solid #d9d9d9;
+                border-radius: 4px;
+                font-size: 14px;
+                outline: none;
+            }
 
-        .kb-input:focus {
-            border-color: #1890ff;
-            box-shadow: 0 0 0 2px rgba(24,144,255,0.2);
-        }
+            .kb-input:focus {
+                border-color: #1890ff;
+                box-shadow: 0 0 0 2px rgba(24,144,255,0.2);
+            }
 
-        .kb-btn {
-            padding: 8px 16px;
-            background: #1890ff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background 0.3s ease;
-        }
+            .kb-btn {
+                padding: 8px 16px;
+                background: #1890ff;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 14px;
+                transition: background 0.3s ease;
+            }
 
-        .kb-btn:hover {
-            background: #40a9ff;
-        }
+            .kb-btn:hover {
+                background: #40a9ff;
+            }
 
-        .kb-btn-danger {
-            background: #ff4d4f;
-        }
+            .kb-btn-danger {
+                background: #ff4d4f;
+            }
 
-        .kb-btn-danger:hover {
-            background: #ff7875;
-        }
+            .kb-btn-danger:hover {
+                background: #ff7875;
+            }
 
-        .kb-list-container {
-            max-height: 300px;
-            overflow-y: auto;
-            padding: 0;
-            border: 1px solid #f0f0f0;
-            border-radius: 4px;
-            margin-bottom: 12px;
-        }
+            .kb-list-container {
+                max-height: 300px;
+                overflow-y: auto;
+                padding: 0;
+                border: 1px solid #f0f0f0;
+                border-radius: 4px;
+                margin-bottom: 12px;
+            }
 
-        .kb-list {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-        }
+            .kb-list {
+                list-style: none;
+                margin: 0;
+                padding: 0;
+            }
 
-        .kb-list-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            padding: 12px 16px;
-            border-bottom: 1px solid #f0f0f0;
-            transition: background 0.2s ease;
-        }
+            .kb-list-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                padding: 12px 16px;
+                border-bottom: 1px solid #f0f0f0;
+                transition: background 0.2s ease;
+            }
 
-        .kb-list-item:hover {
-            background: #f5f5f5;
-        }
+            .kb-list-item:hover {
+                background: #f5f5f5;
+            }
 
-        .kb-item-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
+            .kb-item-content {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+            }
 
-        .kb-item-text {
-            font-size: 14px;
-            color: #262626;
-            word-break: break-all;
-            margin-bottom: 4px;
-        }
+            .kb-item-text {
+                font-size: 14px;
+                color: #262626;
+                word-break: break-all;
+                margin-bottom: 4px;
+            }
 
-        .kb-item-type {
-            font-size: 12px;
-            color: #666;
-            background: #f0f0f0;
-            padding: 2px 6px;
-            border-radius: 3px;
-            align-self: flex-start;
-        }
+            .kb-item-type {
+                font-size: 12px;
+                color: #666;
+                background: #f0f0f0;
+                padding: 2px 6px;
+                border-radius: 3px;
+                align-self: flex-start;
+            }
 
-        .kb-item-type.username {
-            background: #e6f7ff;
-            color: #1890ff;
-        }
+            .kb-item-type.username {
+                background: #e6f7ff;
+                color: #1890ff;
+            }
 
-        .kb-item-type.userid {
-            background: #f6ffed;
-            color: #52c41a;
-        }
+            .kb-item-type.userid {
+                background: #f6ffed;
+                color: #52c41a;
+            }
 
-        .kb-delete-btn {
-            padding: 4px 8px;
-            background: #ff4d4f;
-            color: white;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: background 0.3s ease;
-            margin-left: 8px;
-        }
+            .kb-delete-btn {
+                padding: 4px 8px;
+                background: #ff4d4f;
+                color: white;
+                border: none;
+                border-radius: 3px;
+                cursor: pointer;
+                font-size: 12px;
+                transition: background 0.3s ease;
+                margin-left: 8px;
+            }
 
-        .kb-delete-btn:hover {
-            background: #ff7875;
-        }
+            .kb-delete-btn:hover {
+                background: #ff7875;
+            }
 
-        .kb-confirm-group {
-            display: flex;
-            gap: 8px;
-        }
+            .kb-confirm-group {
+                display: flex;
+                gap: 8px;
+            }
 
-        .kb-confirm-btn {
-            padding: 4px 8px;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: background 0.3s ease;
-        }
+            .kb-confirm-btn {
+                padding: 4px 8px;
+                border: none;
+                border-radius: 3px;
+                cursor: pointer;
+                font-size: 12px;
+                transition: background 0.3s ease;
+            }
 
-        .kb-confirm-delete {
-            background: #ff4d4f;
-            color: white;
-        }
+            .kb-confirm-delete {
+                background: #ff4d4f;
+                color: white;
+            }
 
-        .kb-confirm-delete:hover {
-            background: #ff7875;
-        }
+            .kb-confirm-delete:hover {
+                background: #ff7875;
+            }
 
-        .kb-confirm-cancel {
-            background: #8c8c8c;
-            color: white;
-        }
+            .kb-confirm-cancel {
+                background: #8c8c8c;
+                color: white;
+            }
 
-        .kb-confirm-cancel:hover {
-            background: #a6a6a6;
-        }
+            .kb-confirm-cancel:hover {
+                background: #a6a6a6;
+            }
 
-        .kb-stats {
-            padding: 12px 16px;
-            background: #f9f9f9;
-            border-top: 1px solid #f0f0f0;
-            font-size: 12px;
-            color: #666;
-            text-align: center;
-        }
+            .kb-stats {
+                padding: 12px 16px;
+                background: #f9f9f9;
+                border-top: 1px solid #f0f0f0;
+                font-size: 12px;
+                color: #666;
+                text-align: center;
+            }
 
-        .kb-import-export-container {
-            padding: 12px 16px;
-            background: #f9f9f9;
-            border-top: 1px solid #f0f0f0;
-            border-radius: 0 0 8px 8px;
-        }
+            .kb-import-export-container {
+                padding: 12px 16px;
+                background: #f9f9f9;
+                border-top: 1px solid #f0f0f0;
+                border-radius: 0 0 8px 8px;
+            }
 
-        .kb-import-export-group {
-            display: flex;
-            gap: 8px;
-        }
+            .kb-import-export-group {
+                display: flex;
+                gap: 8px;
+            }
 
-        .kb-import-export-group .kb-btn {
-            flex: 1;
-            padding: 8px;
-            font-size: 13px;
-        }
+            .kb-import-export-group .kb-btn {
+                flex: 1;
+                padding: 8px;
+                font-size: 13px;
+            }
 
-        .kb-close-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: none;
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-            color: #999;
-            padding: 4px;
-            border-radius: 3px;
-            transition: all 0.2s ease;
-        }
+            .kb-close-btn {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                background: none;
+                border: none;
+                font-size: 18px;
+                cursor: pointer;
+                color: #999;
+                padding: 4px;
+                border-radius: 3px;
+                transition: all 0.2s ease;
+            }
 
-        .kb-close-btn:hover {
-            background: #f0f0f0;
-            color: #666;
-        }
+            .kb-close-btn:hover {
+                background: #f0f0f0;
+                color: #666;
+            }
 
-        .kb-disable-site-btn {
-            padding: 4px 8px;
-            background: #8c8c8c;
-            color: white;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 10px;
-            white-space: nowrap;
-            margin-left: 12px;
-            transition: background 0.3s ease;
-        }
+            .kb-disable-site-btn {
+                padding: 4px 8px;
+                background: #8c8c8c;
+                color: white;
+                border: none;
+                border-radius: 3px;
+                cursor: pointer;
+                font-size: 10px;
+                white-space: nowrap;
+                margin-left: 12px;
+                transition: background 0.3s ease;
+            }
 
-        .kb-disable-site-btn:hover {
-            background: #a6a6a6;
-        }
+            .kb-disable-site-btn:hover {
+                background: #a6a6a6;
+            }
 
-        .kb-input-hint {
-            font-size: 12px;
-            color: #999;
-            margin-top: 4px;
-            margin-bottom: 12px;
-        }
+            .kb-input-hint {
+                font-size: 12px;
+                color: #999;
+                margin-top: 4px;
+                margin-bottom: 12px;
+            }
 
-        .kb-user-type-selector {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
+            .kb-user-type-selector {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 12px;
+            }
 
-        .kb-user-type-btn {
-            flex: 1;
-            padding: 8px 12px;
-            background: #f5f5f5;
-            border: 1px solid #d9d9d9;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            transition: all 0.3s ease;
-        }
+            .kb-user-type-btn {
+                flex: 1;
+                padding: 8px 12px;
+                background: #f5f5f5;
+                border: 1px solid #d9d9d9;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 13px;
+                transition: all 0.3s ease;
+            }
 
-        .kb-user-type-btn.active {
-            background: #1890ff;
-            color: white;
-            border-color: #1890ff;
-        }
+            .kb-user-type-btn.active {
+                background: #1890ff;
+                color: white;
+                border-color: #1890ff;
+            }
 
-        .kb-card-block-section, .kb-low-like-section, .kb-zhihu-section {
-            padding: 20px;
-            text-align: center;
-        }
+            .kb-card-block-section, .kb-low-like-section, .kb-zhihu-section {
+                padding: 20px;
+                text-align: center;
+            }
 
-        .kb-card-block-title, .kb-low-like-title, .kb-zhihu-title {
-            font-size: 16px;
-            font-weight: 500;
-            margin-bottom: 16px;
-            color: #262626;
-        }
+            .kb-card-block-title, .kb-low-like-title, .kb-zhihu-title {
+                font-size: 16px;
+                font-weight: 500;
+                margin-bottom: 16px;
+                color: #262626;
+            }
 
-        .kb-card-block-desc, .kb-low-like-desc, .kb-zhihu-desc {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 20px;
-            line-height: 1.5;
-        }
+            .kb-card-block-desc, .kb-low-like-desc, .kb-zhihu-desc {
+                font-size: 14px;
+                color: #666;
+                margin-bottom: 20px;
+                line-height: 1.5;
+            }
 
-        .kb-toggle-btn {
-            padding: 12px 24px;
-            background: #1890ff;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
+            .kb-toggle-btn {
+                padding: 12px 24px;
+                background: #1890ff;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 500;
+                transition: all 0.3s ease;
+            }
 
-        .kb-toggle-btn:hover {
-            background: #40a9ff;
-            transform: translateY(-1px);
-        }
+            .kb-toggle-btn:hover {
+                background: #40a9ff;
+                transform: translateY(-1px);
+            }
 
-        .kb-toggle-btn.disabled {
-            background: #8c8c8c;
-        }
+            .kb-toggle-btn.disabled {
+                background: #8c8c8c;
+            }
 
-        .kb-toggle-btn.disabled:hover {
-            background: #a6a6a6;
-            transform: none;
-        }
+            .kb-toggle-btn.disabled:hover {
+                background: #a6a6a6;
+                transform: none;
+            }
 
-        .kb-status-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 8px;
-        }
+            .kb-status-indicator {
+                display: inline-block;
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                margin-right: 8px;
+            }
 
-        .kb-status-enabled {
-            background: #52c41a;
-        }
+            .kb-status-enabled {
+                background: #52c41a;
+            }
 
-        .kb-status-disabled {
-            background: #ff4d4f;
-        }
+            .kb-status-disabled {
+                background: #ff4d4f;
+            }
 
-        .kb-threshold-control {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
+            .kb-threshold-control {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 12px;
+                margin-bottom: 16px;
+            }
 
-        .kb-threshold-input {
-            width: 80px;
-            padding: 8px 12px;
-            border: 1px solid #d9d9d9;
-            border-radius: 4px;
-            font-size: 14px;
-            text-align: center;
-        }
+            .kb-threshold-input {
+                width: 80px;
+                padding: 8px 12px;
+                border: 1px solid #d9d9d9;
+                border-radius: 4px;
+                font-size: 14px;
+                text-align: center;
+            }
 
-        .kb-threshold-input:focus {
-            border-color: #1890ff;
-            box-shadow: 0 0 0 2px rgba(24,144,255,0.2);
-        }
+            .kb-threshold-input:focus {
+                border-color: #1890ff;
+                box-shadow: 0 0 0 2px rgba(24,144,255,0.2);
+            }
 
-        .kb-threshold-label {
-            font-size: 14px;
-            color: #262626;
-        }
+            .kb-threshold-label {
+                font-size: 14px;
+                color: #262626;
+            }
 
-        .kb-zhihu-feature {
-            margin-bottom: 20px;
-            padding: 16px;
-            border: 1px solid #f0f0f0;
-            border-radius: 8px;
-            background: #fafafa;
-        }
+            .kb-zhihu-feature {
+                margin-bottom: 20px;
+                padding: 16px;
+                border: 1px solid #f0f0f0;
+                border-radius: 8px;
+                background: #fafafa;
+            }
 
-        .kb-zhihu-feature:last-child {
-            margin-bottom: 0;
-        }
-    `;
+            .kb-zhihu-feature:last-child {
+                margin-bottom: 0;
+            }
+        `;
         document.head.appendChild(style);
 
         // 创建切换按钮
@@ -753,148 +770,148 @@
 
         // 构建选项卡HTML
         const tabHtml = `
-        <div class="kb-tab-container">
-            <button class="kb-tab active" data-tab="keywords">关键词屏蔽</button>
-            <button class="kb-tab" data-tab="users">用户屏蔽</button>
-            ${currentSite === 'bilibili' ? '<button class="kb-tab" data-tab="cards">卡片屏蔽</button>' : ''}
-            ${currentSite === 'zhihu' ? '<button class="kb-tab" data-tab="zhihu-advanced">知乎增强</button>' : ''}
-        </div>
-    `;
+            <div class="kb-tab-container">
+                <button class="kb-tab active" data-tab="keywords">关键词屏蔽</button>
+                <button class="kb-tab" data-tab="users">用户屏蔽</button>
+                ${currentSite === 'bilibili' ? '<button class="kb-tab" data-tab="cards">卡片屏蔽</button>' : ''}
+                ${currentSite === 'zhihu' ? '<button class="kb-tab" data-tab="zhihu-advanced">知乎增强</button>' : ''}
+            </div>
+        `;
 
         // 构建内容区域HTML
         const contentHtml = `
-        <!-- 关键词屏蔽标签页 -->
-        <div id="kb-tab-keywords" class="kb-tab-content active">
-            <div class="kb-input-group">
-                <input type="text" id="kb-keyword-input" class="kb-input" placeholder="输入屏蔽词，用 , 或 / 分隔" />
-                <button id="kb-add-keyword-btn" class="kb-btn">新增</button>
-            </div>
-            <div class="kb-input-hint">多个关键词可用逗号或斜杠分隔</div>
-            <div class="kb-list-container">
-                <ul id="kb-keyword-list" class="kb-list"></ul>
-            </div>
-            <div class="kb-stats">
-                当前共有 <span id="kb-keyword-count">0</span> 个屏蔽词
-            </div>
-        </div>
-
-        <!-- 用户屏蔽标签页 -->
-        <div id="kb-tab-users" class="kb-tab-content">
-            <div class="kb-user-type-selector">
-                <button class="kb-user-type-btn active" data-type="username">用户名屏蔽</button>
-                <button class="kb-user-type-btn" data-type="userid">用户ID屏蔽</button>
-            </div>
-            <div class="kb-input-group">
-                <input type="text" id="kb-user-input" class="kb-input" placeholder="输入用户名或用户主页链接" />
-                <button id="kb-add-user-btn" class="kb-btn">新增</button>
-            </div>
-            <div class="kb-input-hint" id="kb-user-hint">
-                输入用户名进行屏蔽（可能存在重名情况）
-            </div>
-            <div class="kb-list-container">
-                <ul id="kb-user-list" class="kb-list"></ul>
-            </div>
-            <div class="kb-stats">
-                当前共有 <span id="kb-user-count">0</span> 个屏蔽用户
-            </div>
-        </div>
-
-        <!-- B站卡片屏蔽标签页 -->
-        ${currentSite === 'bilibili' ? `
-        <div id="kb-tab-cards" class="kb-tab-content">
-            <div class="kb-card-block-section">
-                <div class="kb-card-block-title">
-                    <span class="kb-status-indicator ${BILIBILI_CARD_BLOCK_ENABLED ? 'kb-status-enabled' : 'kb-status-disabled'}"></span>
-                    B站卡片屏蔽
+            <!-- 关键词屏蔽标签页 -->
+            <div id="kb-tab-keywords" class="kb-tab-content active">
+                <div class="kb-input-group">
+                    <input type="text" id="kb-keyword-input" class="kb-input" placeholder="输入屏蔽词，用 , 或 / 分隔" />
+                    <button id="kb-add-keyword-btn" class="kb-btn">新增</button>
                 </div>
-                <div class="kb-card-block-desc">
-                    启用后会同时隐藏B站的分区推荐卡片（如"国创"、"综艺"等）和直播推荐卡片，让界面更加清爽。
+                <div class="kb-input-hint">多个关键词可用逗号或斜杠分隔</div>
+                <div class="kb-list-container">
+                    <ul id="kb-keyword-list" class="kb-list"></ul>
                 </div>
-                <button id="kb-toggle-card-block" class="kb-toggle-btn ${BILIBILI_CARD_BLOCK_ENABLED ? '' : 'disabled'}">
-                    ${BILIBILI_CARD_BLOCK_ENABLED ? '已启用 - 点击关闭' : '已关闭 - 点击启用'}
-                </button>
+                <div class="kb-stats">
+                    当前共有 <span id="kb-keyword-count">0</span> 个屏蔽词
+                </div>
             </div>
-        </div>
-        ` : ''}
 
-        <!-- 知乎增强屏蔽标签页 -->
-        ${currentSite === 'zhihu' ? `
-        <div id="kb-tab-zhihu-advanced" class="kb-tab-content">
-            <div class="kb-zhihu-section">
-                <!-- 低赞屏蔽功能 -->
-                <div class="kb-zhihu-feature">
-                    <div class="kb-zhihu-title">
-                        <span class="kb-status-indicator ${ZHIHU_LOW_LIKE_SETTINGS.enabled ? 'kb-status-enabled' : 'kb-status-disabled'}"></span>
-                        知乎低赞内容屏蔽
-                    </div>
-                    <div class="kb-zhihu-desc">
-                        启用后会隐藏点赞数低于设定阈值的内容，让您只看到高质量的回答。
-                    </div>
-                    <div class="kb-threshold-control">
-                        <label class="kb-threshold-label">点赞阈值:</label>
-                        <input type="number" id="kb-low-like-threshold" class="kb-threshold-input" value="${ZHIHU_LOW_LIKE_SETTINGS.threshold}" min="0" />
-                    </div>
-                    <button id="kb-toggle-low-like" class="kb-toggle-btn ${ZHIHU_LOW_LIKE_SETTINGS.enabled ? '' : 'disabled'}">
-                        ${ZHIHU_LOW_LIKE_SETTINGS.enabled ? '已启用 - 点击关闭' : '已关闭 - 点击启用'}
-                    </button>
+            <!-- 用户屏蔽标签页 -->
+            <div id="kb-tab-users" class="kb-tab-content">
+                <div class="kb-user-type-selector">
+                    <button class="kb-user-type-btn active" data-type="username">用户名屏蔽</button>
+                    <button class="kb-user-type-btn" data-type="userid">用户ID屏蔽</button>
                 </div>
-
-                <!-- 文章屏蔽功能 -->
-                <div class="kb-zhihu-feature">
-                    <div class="kb-zhihu-title">
-                        <span class="kb-status-indicator ${ZHIHU_ARTICLE_BLOCK_ENABLED ? 'kb-status-enabled' : 'kb-status-disabled'}"></span>
-                        知乎文章屏蔽
-                    </div>
-                    <div class="kb-zhihu-desc">
-                        启用后会隐藏知乎的所有文章内容，只显示问答内容。
-                    </div>
-                    <button id="kb-toggle-article-block" class="kb-toggle-btn ${ZHIHU_ARTICLE_BLOCK_ENABLED ? '' : 'disabled'}">
-                        ${ZHIHU_ARTICLE_BLOCK_ENABLED ? '已启用 - 点击关闭' : '已关闭 - 点击启用'}
-                    </button>
+                <div class="kb-input-group">
+                    <input type="text" id="kb-user-input" class="kb-input" placeholder="输入用户名或用户主页链接" />
+                    <button id="kb-add-user-btn" class="kb-btn">新增</button>
                 </div>
+                <div class="kb-input-hint" id="kb-user-hint">
+                    输入用户名进行屏蔽（可能存在重名情况）
+                </div>
+                <div class="kb-list-container">
+                    <ul id="kb-user-list" class="kb-list"></ul>
+                </div>
+                <div class="kb-stats">
+                    当前共有 <span id="kb-user-count">0</span> 个屏蔽用户
+                </div>
+            </div>
 
-                <!-- 盐选内容屏蔽功能 -->
-                <div class="kb-zhihu-feature">
-                    <div class="kb-zhihu-title">
-                        <span class="kb-status-indicator ${ZHIHU_SALT_BLOCK_ENABLED ? 'kb-status-enabled' : 'kb-status-disabled'}"></span>
-                        知乎盐选内容屏蔽
+            <!-- B站卡片屏蔽标签页 -->
+            ${currentSite === 'bilibili' ? `
+            <div id="kb-tab-cards" class="kb-tab-content">
+                <div class="kb-card-block-section">
+                    <div class="kb-card-block-title">
+                        <span class="kb-status-indicator ${BILIBILI_CARD_BLOCK_ENABLED ? 'kb-status-enabled' : 'kb-status-disabled'}"></span>
+                        B站卡片屏蔽
                     </div>
-                    <div class="kb-zhihu-desc">
-                        启用后会隐藏知乎的盐选付费内容，包括盐选专栏、付费故事等。
+                    <div class="kb-card-block-desc">
+                        启用后会同时隐藏B站的分区推荐卡片（如"国创"、"综艺"等）和直播推荐卡片，让界面更加清爽。
                     </div>
-                    <button id="kb-toggle-salt-block" class="kb-toggle-btn ${ZHIHU_SALT_BLOCK_ENABLED ? '' : 'disabled'}">
-                        ${ZHIHU_SALT_BLOCK_ENABLED ? '已启用 - 点击关闭' : '已关闭 - 点击启用'}
+                    <button id="kb-toggle-card-block" class="kb-toggle-btn ${BILIBILI_CARD_BLOCK_ENABLED ? '' : 'disabled'}">
+                        ${BILIBILI_CARD_BLOCK_ENABLED ? '已启用 - 点击关闭' : '已关闭 - 点击启用'}
                     </button>
                 </div>
             </div>
-        </div>
-        ` : ''}
-    `;
+            ` : ''}
+
+            <!-- 知乎增强屏蔽标签页 -->
+            ${currentSite === 'zhihu' ? `
+            <div id="kb-tab-zhihu-advanced" class="kb-tab-content">
+                <div class="kb-zhihu-section">
+                    <!-- 低赞屏蔽功能 -->
+                    <div class="kb-zhihu-feature">
+                        <div class="kb-zhihu-title">
+                            <span class="kb-status-indicator ${ZHIHU_LOW_LIKE_SETTINGS.enabled ? 'kb-status-enabled' : 'kb-status-disabled'}"></span>
+                            知乎低赞内容屏蔽
+                        </div>
+                        <div class="kb-zhihu-desc">
+                            启用后会隐藏点赞数低于设定阈值的内容，让您只看到高质量的回答。
+                        </div>
+                        <div class="kb-threshold-control">
+                            <label class="kb-threshold-label">点赞阈值:</label>
+                            <input type="number" id="kb-low-like-threshold" class="kb-threshold-input" value="${ZHIHU_LOW_LIKE_SETTINGS.threshold}" min="0" />
+                        </div>
+                        <button id="kb-toggle-low-like" class="kb-toggle-btn ${ZHIHU_LOW_LIKE_SETTINGS.enabled ? '' : 'disabled'}">
+                            ${ZHIHU_LOW_LIKE_SETTINGS.enabled ? '已启用 - 点击关闭' : '已关闭 - 点击启用'}
+                        </button>
+                    </div>
+
+                    <!-- 文章屏蔽功能 -->
+                    <div class="kb-zhihu-feature">
+                        <div class="kb-zhihu-title">
+                            <span class="kb-status-indicator ${ZHIHU_ARTICLE_BLOCK_ENABLED ? 'kb-status-enabled' : 'kb-status-disabled'}"></span>
+                            知乎文章屏蔽
+                        </div>
+                        <div class="kb-zhihu-desc">
+                            启用后会隐藏知乎的所有文章内容，只显示问答内容。
+                        </div>
+                        <button id="kb-toggle-article-block" class="kb-toggle-btn ${ZHIHU_ARTICLE_BLOCK_ENABLED ? '' : 'disabled'}">
+                            ${ZHIHU_ARTICLE_BLOCK_ENABLED ? '已启用 - 点击关闭' : '已关闭 - 点击启用'}
+                        </button>
+                    </div>
+
+                    <!-- 盐选内容屏蔽功能 -->
+                    <div class="kb-zhihu-feature">
+                        <div class="kb-zhihu-title">
+                            <span class="kb-status-indicator ${ZHIHU_SALT_BLOCK_ENABLED ? 'kb-status-enabled' : 'kb-status-disabled'}"></span>
+                            知乎盐选内容屏蔽
+                        </div>
+                        <div class="kb-zhihu-desc">
+                            启用后会隐藏知乎的盐选付费内容，包括盐选专栏、付费故事等。
+                        </div>
+                        <button id="kb-toggle-salt-block" class="kb-toggle-btn ${ZHIHU_SALT_BLOCK_ENABLED ? '' : 'disabled'}">
+                            ${ZHIHU_SALT_BLOCK_ENABLED ? '已启用 - 点击关闭' : '已关闭 - 点击启用'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+        `;
 
         panel.innerHTML = `
-        <button class="kb-close-btn" id="kb-close">×</button>
-        <div class="kb-panel-header">
-            <div class="kb-title-row">
-                <h3 class="kb-panel-title">${statusText}</h3>
-                <button class="kb-disable-site-btn" id="kb-disable-site">${btnText}</button>
+            <button class="kb-close-btn" id="kb-close">×</button>
+            <div class="kb-panel-header">
+                <div class="kb-title-row">
+                    <h3 class="kb-panel-title">${statusText}</h3>
+                    <button class="kb-disable-site-btn" id="kb-disable-site">${btnText}</button>
+                </div>
+                ${tabHtml}
+                ${contentHtml}
             </div>
-            ${tabHtml}
-            ${contentHtml}
-        </div>
-        <div class="kb-import-export-container">
-            <div class="kb-import-export-group">
-                <button id="kb-export-btn" class="kb-btn">导出数据</button>
-                <button id="kb-import-btn" class="kb-btn">导入数据</button>
-                <input type="file" id="kb-import-file" accept=".json" style="display: none;" />
+            <div class="kb-import-export-container">
+                <div class="kb-import-export-group">
+                    <button id="kb-export-btn" class="kb-btn">导出数据</button>
+                    <button id="kb-import-btn" class="kb-btn">导入数据</button>
+                    <input type="file" id="kb-import-file" accept=".json" style="display: none;" />
+                </div>
             </div>
-        </div>
-    `;
+        `;
         document.body.appendChild(panel);
 
         return { toggleBtn, panel };
     }
 
-// 更新用户屏蔽提示信息
+    // 更新用户屏蔽提示信息
     function updateUserInputHint() {
         const hintElement = document.getElementById('kb-user-hint');
         if (!hintElement) return;
@@ -914,7 +931,7 @@
         }
     }
 
-// 从用户链接中提取用户ID
+    // 从用户链接中提取用户ID
     function extractUserIdFromInput(input, site) {
         if (!input || typeof input !== 'string') return null;
 
@@ -939,7 +956,7 @@
         }
     }
 
-// 渲染屏蔽词列表
+    // 渲染屏蔽词列表
     function renderKeywordList() {
         const list = document.getElementById('kb-keyword-list');
         const count = document.getElementById('kb-keyword-count');
@@ -954,14 +971,14 @@
             li.className = 'kb-list-item';
             li.dataset.index = index;
             li.innerHTML = `
-            <span class="kb-item-text">${keyword}</span>
-            <button class="kb-delete-btn" data-index="${index}" data-type="keyword">删除</button>
-        `;
+                <span class="kb-item-text">${keyword}</span>
+                <button class="kb-delete-btn" data-index="${index}" data-type="keyword">删除</button>
+            `;
             list.appendChild(li);
         });
     }
 
-// 渲染用户列表（增强版，显示类型）
+    // 渲染用户列表（修复版，使用准确的类型判断）
     function renderUserList() {
         const list = document.getElementById('kb-user-list');
         const count = document.getElementById('kb-user-count');
@@ -976,59 +993,69 @@
             li.className = 'kb-list-item';
             li.dataset.index = index;
 
-            // 判断是用户名还是用户ID
-            const isUserId = user.includes('/') || /^\d+$/.test(user);
+            // 使用网站特定的方法判断是否为用户ID
+            const site = getCurrentSite();
+            const config = siteConfigs[site];
+            const isUserId = config && config.isUserId ? config.isUserId(user) : false;
             const typeClass = isUserId ? 'userid' : 'username';
             const typeText = isUserId ? '用户ID' : '用户名';
 
             li.innerHTML = `
-            <div class="kb-item-content">
-                <span class="kb-item-text">${user}</span>
-                <span class="kb-item-type ${typeClass}">${typeText}</span>
-            </div>
-            <button class="kb-delete-btn" data-index="${index}" data-type="user">删除</button>
-        `;
+                <div class="kb-item-content">
+                    <span class="kb-item-text">${user}</span>
+                    <span class="kb-item-type ${typeClass}">${typeText}</span>
+                </div>
+                <button class="kb-delete-btn" data-index="${index}" data-type="user">删除</button>
+            `;
             list.appendChild(li);
         });
     }
 
-// 显示确认删除界面
+    // 显示确认删除界面
     function showDeleteConfirm(listItem, index, type) {
         const list = type === 'keyword' ? BLOCK_KEYWORDS : BLOCK_USERS;
         const item = list[index];
-        const isUserId = type === 'user' && (item.includes('/') || /^\d+$/.test(item));
+
+        // 使用网站特定的方法判断是否为用户ID
+        const site = getCurrentSite();
+        const config = siteConfigs[site];
+        const isUserId = type === 'user' && config && config.isUserId ? config.isUserId(item) : false;
         const typeText = isUserId ? '用户ID' : (type === 'keyword' ? '关键词' : '用户名');
 
         listItem.innerHTML = `
-        <div class="kb-item-content">
-            <span class="kb-item-text">${item}</span>
-            <span class="kb-item-type ${isUserId ? 'userid' : (type === 'keyword' ? '' : 'username')}">${typeText}</span>
-        </div>
-        <div class="kb-confirm-group">
-            <button class="kb-confirm-btn kb-confirm-delete" data-index="${index}" data-type="${type}">确认删除</button>
-            <button class="kb-confirm-btn kb-confirm-cancel" data-index="${index}" data-type="${type}">手滑了</button>
-        </div>
-    `;
+            <div class="kb-item-content">
+                <span class="kb-item-text">${item}</span>
+                <span class="kb-item-type ${isUserId ? 'userid' : (type === 'keyword' ? '' : 'username')}">${typeText}</span>
+            </div>
+            <div class="kb-confirm-group">
+                <button class="kb-confirm-btn kb-confirm-delete" data-index="${index}" data-type="${type}">确认删除</button>
+                <button class="kb-confirm-btn kb-confirm-cancel" data-index="${index}" data-type="${type}">手滑了</button>
+            </div>
+        `;
     }
 
-// 恢复正常显示
+    // 恢复正常显示
     function restoreNormalView(listItem, index, type) {
         const list = type === 'keyword' ? BLOCK_KEYWORDS : BLOCK_USERS;
         const item = list[index];
-        const isUserId = type === 'user' && (item.includes('/') || /^\d+$/.test(item));
+
+        // 使用网站特定的方法判断是否为用户ID
+        const site = getCurrentSite();
+        const config = siteConfigs[site];
+        const isUserId = type === 'user' && config && config.isUserId ? config.isUserId(item) : false;
         const typeClass = isUserId ? 'userid' : 'username';
         const typeText = isUserId ? '用户ID' : '用户名';
 
         listItem.innerHTML = `
-        <div class="kb-item-content">
-            <span class="kb-item-text">${item}</span>
-            <span class="kb-item-type ${typeClass}">${typeText}</span>
-        </div>
-        <button class="kb-delete-btn" data-index="${index}" data-type="${type}">删除</button>
-    `;
+            <div class="kb-item-content">
+                <span class="kb-item-text">${item}</span>
+                <span class="kb-item-type ${typeClass}">${typeText}</span>
+            </div>
+            <button class="kb-delete-btn" data-index="${index}" data-type="${type}">删除</button>
+        `;
     }
 
-// 添加屏蔽词
+    // 添加屏蔽词
     function addKeywords(input) {
         const words = input.split(/[,，/]/)
             .map(word => word.replace(/\s+/g, ''))
@@ -1044,7 +1071,7 @@
         return false;
     }
 
-// 添加屏蔽用户
+    // 添加屏蔽用户
     function addUsers(input) {
         if (currentUserBlockType === 'userid') {
             // 用户ID模式：不分割，直接处理整个输入
@@ -1086,7 +1113,7 @@
         }
     }
 
-// 删除屏蔽词
+    // 删除屏蔽词
     function removeKeyword(index) {
         if (index >= 0 && index < BLOCK_KEYWORDS.length) {
             const removed = BLOCK_KEYWORDS.splice(index, 1);
@@ -1098,7 +1125,7 @@
         return false;
     }
 
-// 删除屏蔽用户
+    // 删除屏蔽用户
     function removeUser(index) {
         if (index >= 0 && index < BLOCK_USERS.length) {
             const removed = BLOCK_USERS.splice(index, 1);
@@ -1110,7 +1137,7 @@
         return false;
     }
 
-// B站卡片屏蔽功能
+    // B站卡片屏蔽功能
     function initBilibiliCardBlock() {
         if (getCurrentSite() !== 'bilibili') return;
 
@@ -1167,7 +1194,7 @@
         return BILIBILI_CARD_BLOCK_ENABLED;
     }
 
-// 知乎低赞屏蔽功能
+    // 知乎低赞屏蔽功能
     function initZhihuLowLikeBlock() {
         if (getCurrentSite() !== 'zhihu') return;
 
@@ -1222,7 +1249,7 @@
         });
     }
 
-// 修复点赞数解析函数
+    // 修复点赞数解析函数
     function parseLikeCount(likeElement) {
         if (!likeElement) return null;
 
@@ -1286,7 +1313,7 @@
         }
     }
 
-// 知乎文章屏蔽功能
+    // 知乎文章屏蔽功能
     function initZhihuArticleBlock() {
         if (getCurrentSite() !== 'zhihu') return;
 
@@ -1338,7 +1365,7 @@
         });
     }
 
-// 知乎盐选屏蔽功能
+    // 知乎盐选屏蔽功能
     function initZhihuSaltBlock() {
         if (getCurrentSite() !== 'zhihu') return;
 
@@ -1358,10 +1385,10 @@
             ).join('\n');
 
             const containerRules = `
-            ${siteConfigs.zhihu.saltContainerSelector}:has(${siteConfigs.zhihu.saltSelectors.join(', ')}) {
-                display: none !important;
-            }
-        `;
+                ${siteConfigs.zhihu.saltContainerSelector}:has(${siteConfigs.zhihu.saltSelectors.join(', ')}) {
+                    display: none !important;
+                }
+            `;
 
             zhihuSaltStyleElement.innerHTML = saltSelectors + '\n' + containerRules;
         } else {
@@ -1420,7 +1447,7 @@
         });
     }
 
-// 切换函数
+    // 切换函数
     function toggleZhihuArticleBlock() {
         ZHIHU_ARTICLE_BLOCK_ENABLED = !ZHIHU_ARTICLE_BLOCK_ENABLED;
         saveZhihuArticleBlockState(ZHIHU_ARTICLE_BLOCK_ENABLED);
@@ -1444,7 +1471,7 @@
         return ZHIHU_SALT_BLOCK_ENABLED;
     }
 
-// 更新B站卡片屏蔽选项卡的UI
+    // 更新B站卡片屏蔽选项卡的UI
     function updateBilibiliCardTabUI() {
         if (getCurrentSite() !== 'bilibili') return;
 
@@ -1466,7 +1493,7 @@
         }
     }
 
-// 更新知乎低赞屏蔽选项卡的UI
+    // 更新知乎低赞屏蔽选项卡的UI
     function updateZhihuLowLikeTabUI() {
         if (getCurrentSite() !== 'zhihu') return;
 
@@ -1488,7 +1515,7 @@
         }
     }
 
-// 更新知乎文章屏蔽选项卡的UI
+    // 更新知乎文章屏蔽选项卡的UI
     function updateZhihuArticleTabUI() {
         if (getCurrentSite() !== 'zhihu') return;
 
@@ -1510,7 +1537,7 @@
         }
     }
 
-// 更新知乎盐选屏蔽选项卡的UI
+    // 更新知乎盐选屏蔽选项卡的UI
     function updateZhihuSaltTabUI() {
         if (getCurrentSite() !== 'zhihu') return;
 
@@ -1532,7 +1559,7 @@
         }
     }
 
-// 添加导入导出功能函数
+    // 添加导入导出功能函数
     function setupImportExport() {
         const exportBtn = document.getElementById('kb-export-btn');
         const importBtn = document.getElementById('kb-import-btn');
@@ -1557,7 +1584,7 @@
                 zhihuArticleBlock: ZHIHU_ARTICLE_BLOCK_ENABLED,
                 zhihuSaltBlock: ZHIHU_SALT_BLOCK_ENABLED,
                 exportTime: new Date().toISOString(),
-                version: '1.2.1'
+                version: '1.2.2'
             };
 
             const dataStr = JSON.stringify(exportData, null, 2);
@@ -1570,7 +1597,7 @@
             linkElement.setAttribute('download', exportFileDefaultName);
             linkElement.click();
 
-            alert(`${sourceName}屏蔽数据已导出`);
+            console.log(`${sourceName}屏蔽数据已导出`);
         });
 
         // 导入功能
@@ -1656,7 +1683,7 @@
         });
     }
 
-// 初始化UI事件
+    // 初始化UI事件
     function initUIEvents() {
         const toggleBtn = document.getElementById('keyword-blocker-toggle');
         const panel = document.getElementById('keyword-blocker-panel');
@@ -1884,7 +1911,7 @@
         setupImportExport();
     }
 
-// 处理单个内容元素
+    // 处理单个内容元素（修复用户匹配逻辑）
     function processContentElement(element, config) {
         const site = getCurrentSite();
 
@@ -1961,21 +1988,18 @@
         // 检查是否包含屏蔽关键词
         const hasBlockedKeyword = BLOCK_KEYWORDS.some(keyword => title.includes(keyword));
 
-        // 检查是否包含屏蔽用户（同时检查用户名和用户ID）
+        // 检查是否包含屏蔽用户（修复版，使用准确的类型判断）
         const hasBlockedUser = BLOCK_USERS.some(user => {
-            // 检查用户名
-            if (userInfo && userInfo.includes(user)) {
-                return true;
+            // 使用网站特定的方法判断是否为用户ID
+            const isUserId = config.isUserId ? config.isUserId(user) : false;
+
+            if (isUserId) {
+                // 如果是用户ID，精确匹配用户ID
+                return userId && userId === user;
+            } else {
+                // 如果是用户名，匹配用户名
+                return userInfo && userInfo.includes(user);
             }
-            // 检查用户ID
-            if (userId && userId === user) {
-                return true;
-            }
-            // 如果用户输入的是完整链接，也进行检查
-            if (userIdElement && userIdElement.href && userIdElement.href.includes(user)) {
-                return true;
-            }
-            return false;
         });
 
         if (hasBlockedKeyword || hasBlockedUser) {
@@ -2022,7 +2046,7 @@
         }
     }
 
-// 处理所有内容元素
+    // 处理所有内容元素
     function processAllContent() {
         const site = getCurrentSite();
         const config = siteConfigs[site];
@@ -2037,7 +2061,7 @@
         });
     }
 
-// 防抖处理函数
+    // 防抖处理函数
     function debounce(func, wait) {
         let timeout;
         return function(...args) {
@@ -2048,7 +2072,7 @@
 
     const debouncedProcessAllContent = debounce(processAllContent, 500);
 
-// 初始化管理UI
+    // 初始化管理UI
     function initManagementUI() {
         createManagementUI();
         renderKeywordList();
@@ -2071,7 +2095,7 @@
         }
     }
 
-// 主初始化函数
+    // 主初始化函数
     function init() {
         // 检查当前网站是否被禁用
         if (isCurrentSiteDisabled()) {
@@ -2139,6 +2163,6 @@
         console.log(`四平台关键词和用户屏蔽器已启动，当前网站: ${getCurrentSite()}`);
     }
 
-// 启动脚本
+    // 启动脚本
     init();
 })();
