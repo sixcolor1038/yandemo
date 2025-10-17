@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         屏蔽管理
 // @namespace    http://tampermonkey.net/
-// @version      1.2.2
+// @version      1.2.3
 // @description  屏蔽微博、知乎、小红书、B站含关键词的内容和指定用户，支持精准用户ID屏蔽和B站卡片屏蔽，新增知乎低赞内容屏蔽、文章屏蔽和盐选内容屏蔽
 // @match        https://www.zhihu.com/
 // @match        https://www.xiaohongshu.com/*
@@ -21,18 +21,14 @@
     'use strict';
 
     // 默认的屏蔽关键词列表
-    const DEFAULT_KEYWORDS = [
+    const DEFAULT_KEYWORDS = [];
 
-    ];
-
-    // 默认的屏蔽用户列表
-    const DEFAULT_USERS = [
-
-    ];
+    // 默认的屏蔽用户ID列表
+    const DEFAULT_USER_IDS = [];
 
     // 存储和获取屏蔽关键词和用户
     const STORAGE_KEYWORDS_KEY = 'keyword_blocker_words';
-    const STORAGE_USERS_KEY = 'keyword_blocker_users';
+    const STORAGE_USER_IDS_KEY = 'keyword_blocker_user_ids';
     const DISABLED_SITES_KEY = 'keyword_blocker_disabled_sites';
     const BILIBILI_CARD_BLOCK_KEY = 'bilibili_card_block_enabled';
     const ZHIHU_LOW_LIKE_KEY = 'zhihu_low_like_settings';
@@ -59,17 +55,17 @@
         }
     }
 
-    function saveUsers(users) {
-        localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
+    function saveUserIds(userIds) {
+        localStorage.setItem(STORAGE_USER_IDS_KEY, JSON.stringify(userIds));
     }
 
-    function loadUsers() {
+    function loadUserIds() {
         try {
-            const saved = localStorage.getItem(STORAGE_USERS_KEY);
-            return saved ? JSON.parse(saved) : [...DEFAULT_USERS];
+            const saved = localStorage.getItem(STORAGE_USER_IDS_KEY);
+            return saved ? JSON.parse(saved) : [...DEFAULT_USER_IDS];
         } catch (e) {
-            console.error('加载屏蔽用户失败:', e);
-            return [...DEFAULT_USERS];
+            console.error('加载屏蔽用户ID失败:', e);
+            return [...DEFAULT_USER_IDS];
         }
     }
 
@@ -183,18 +179,16 @@
         return 'unknown';
     }
 
-    // 网站特定的配置 - 增强用户识别
+    // 网站特定的配置 - 简化版本
     const siteConfigs = {
         zhihu: {
-            containerSelector: '.ContentItem, .TopstoryItem, .ArticleItem',
-            titleSelector: '.ContentItem-title a, .ArticleItem-title a, .QuestionItem-title a',
-            userSelector: '.AuthorInfo-name, .UserLink-link, .ArticleItem-authorInfo .UserLink',
+            containerSelector: '.ContentItem, .TopstoryItem, .ArticleItem, .css-79elbk',
+            titleSelector: '.ContentItem-title a, .ArticleItem-title a, .QuestionItem-title a, .css-1j9i4q2',
+            userSelector: '.AuthorInfo-name, .UserLink-link, .ArticleItem-authorInfo .UserLink, .AuthorInfo .UserLink, .css-1gomreu',
             userIdSelector: '.UserLink-link',
             logPrefix: '已屏蔽知乎内容',
             userLogPrefix: '已屏蔽知乎用户',
-            // 修复点赞数选择器
             likeCountSelector: 'button.VoteButton',
-            // 新增文章和盐选相关选择器
             articleSelector: '.ArticleItem, .ContentItem.ArticleItem',
             saltSelectors: [
                 'div.KfeCollection-OrdinaryLabel-content',
@@ -206,43 +200,33 @@
             saltContainerSelector: 'div.Card.TopstoryItem.TopstoryItem-isRecommend',
             extractUserId: function(userElement) {
                 if (userElement && userElement.href) {
-                    // 更精确的匹配，避免匹配到其他路径
                     const match = userElement.href.match(/zhihu\.com\/people\/([^\/?]+)/);
-                    if (match && match[1] && !match[1].includes('.')) { // 确保不是域名的一部分
+                    if (match && match[1] && !match[1].includes('.')) {
                         return match[1];
                     }
                 }
                 return null;
-            },
-            // 新增：判断是否为用户ID
-            isUserId: function(user) {
-                // 知乎用户ID通常是字母、数字、下划线、减号的组合，且不包含空格
-                return /^[a-zA-Z0-9_-]+$/.test(user) && !/\s/.test(user);
             }
         },
         xiaohongshu: {
-            containerSelector: 'section.note-item',
-            titleSelector: 'a.title, .title',
-            userSelector: '.author .name, .username',
+            containerSelector: 'section.note-item, [data-v-]',
+            titleSelector: 'a.title, .title, [class*="title"]',
+            userSelector: '.author .name, .username, [class*="name"], [class*="author"]',
             userIdSelector: 'a[href*="/user/profile/"]',
             logPrefix: '已屏蔽小红书内容',
             userLogPrefix: '已屏蔽小红书用户',
             extractUserId: function(userElement) {
                 if (userElement && userElement.href) {
-                    const match = userElement.href.match(/\/user\/profile\/([a-f0-9]{24})/); // 小红书用户ID通常是24位十六进制
+                    const match = userElement.href.match(/\/user\/profile\/([a-f0-9]{24})/);
                     return match ? match[1] : null;
                 }
                 return null;
-            },
-            isUserId: function(user) {
-                // 小红书用户ID是24位十六进制
-                return /^[a-f0-9]{24}$/.test(user);
             }
         },
         bilibili: {
-            containerSelector: '.bili-feed-card, .bili-video-card',
-            titleSelector: '.bili-video-card__info--tit, .bili-video-card__info--tit a, .bili-video-card__wrap .bili-video-card__info--tit',
-            userSelector: '.bili-video-card__info--author, .up-name__text, .bili-video-card__info--author a',
+            containerSelector: '.bili-feed-card, .bili-video-card, [class*="card"]',
+            titleSelector: '.bili-video-card__info--tit, .bili-video-card__info--tit a, .bili-video-card__wrap .bili-video-card__info--tit, [class*="title"]',
+            userSelector: '.bili-video-card__info--author, .up-name__text, .bili-video-card__info--author a, .up-name, [class*="author"], [class*="name"]',
             userIdSelector: '.bili-video-card__info--author a',
             logPrefix: '已屏蔽B站内容',
             userLogPrefix: '已屏蔽B站UP主',
@@ -250,37 +234,29 @@
             extractUserId: function(userElement) {
                 if (userElement && userElement.href) {
                     const match = userElement.href.match(/space\.bilibili\.com\/(\d+)/);
-                    if (match && match[1] && !isNaN(parseInt(match[1]))) { // 确保是数字
+                    if (match && match[1] && !isNaN(parseInt(match[1]))) {
                         return match[1];
                     }
                 }
                 return null;
-            },
-            isUserId: function(user) {
-                // B站用户ID是纯数字
-                return /^\d+$/.test(user);
             }
         },
         weibo: {
-            containerSelector: '.wbpro-scroller-item',
-            titleSelector: '.wbpro-feed-content .detail_wbtext_4CRf9',
-            userSelector: '.wbpro-feed-content .name, .woo-box-item .name',
+            containerSelector: '.wbpro-scroller-item, [class*="item"]',
+            titleSelector: '.wbpro-feed-content .detail_wbtext_4CRf9, [class*="text"]',
+            userSelector: '.wbpro-feed-content .name, .woo-box-item .name, [class*="name"], [class*="user"]',
             userIdSelector: '.woo-box-item .name',
             logPrefix: '已屏蔽微博内容',
             userLogPrefix: '已屏蔽微博用户',
             extractUserId: function(userElement) {
                 return null;
-            },
-            isUserId: function(user) {
-                // 微博用户ID比较复杂，这里简单判断是否为数字
-                return /^\d+$/.test(user);
             }
         }
     };
 
-    // 当前屏蔽关键词列表和用户列表
+    // 当前屏蔽关键词列表和用户ID列表
     let BLOCK_KEYWORDS = loadKeywords();
-    let BLOCK_USERS = loadUsers();
+    let BLOCK_USER_IDS = loadUserIds();
 
     // B站卡片屏蔽状态
     let BILIBILI_CARD_BLOCK_ENABLED = isBilibiliCardBlockEnabled();
@@ -293,9 +269,6 @@
     let ZHIHU_ARTICLE_BLOCK_ENABLED = isZhihuArticleBlockEnabled();
     let ZHIHU_SALT_BLOCK_ENABLED = isZhihuSaltBlockEnabled();
     let zhihuSaltStyleElement = null;
-
-    // 用户屏蔽类型管理
-    let currentUserBlockType = 'username';
 
     // 创建管理UI
     function createManagementUI() {
@@ -493,11 +466,6 @@
                 align-self: flex-start;
             }
 
-            .kb-item-type.username {
-                background: #e6f7ff;
-                color: #1890ff;
-            }
-
             .kb-item-type.userid {
                 background: #f6ffed;
                 color: #52c41a;
@@ -619,29 +587,6 @@
                 color: #999;
                 margin-top: 4px;
                 margin-bottom: 12px;
-            }
-
-            .kb-user-type-selector {
-                display: flex;
-                gap: 8px;
-                margin-bottom: 12px;
-            }
-
-            .kb-user-type-btn {
-                flex: 1;
-                padding: 8px 12px;
-                background: #f5f5f5;
-                border: 1px solid #d9d9d9;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 13px;
-                transition: all 0.3s ease;
-            }
-
-            .kb-user-type-btn.active {
-                background: #1890ff;
-                color: white;
-                border-color: #1890ff;
             }
 
             .kb-card-block-section, .kb-low-like-section, .kb-zhihu-section {
@@ -768,17 +713,17 @@
         const btnText = isDisabled ? `重新启用${siteName}屏蔽` : `有BUG？停止屏蔽${siteName}`;
         const statusText = isDisabled ? `⚠️ ${siteName}屏蔽功能已停用` : '屏蔽管理';
 
-        // 构建选项卡HTML
+        // 构建选项卡HTML - 移除用户名屏蔽选项卡
         const tabHtml = `
             <div class="kb-tab-container">
                 <button class="kb-tab active" data-tab="keywords">关键词屏蔽</button>
-                <button class="kb-tab" data-tab="users">用户屏蔽</button>
+                <button class="kb-tab" data-tab="userids">用户ID屏蔽</button>
                 ${currentSite === 'bilibili' ? '<button class="kb-tab" data-tab="cards">卡片屏蔽</button>' : ''}
                 ${currentSite === 'zhihu' ? '<button class="kb-tab" data-tab="zhihu-advanced">知乎增强</button>' : ''}
             </div>
         `;
 
-        // 构建内容区域HTML
+        // 构建内容区域HTML - 移除用户名屏蔽相关内容
         const contentHtml = `
             <!-- 关键词屏蔽标签页 -->
             <div id="kb-tab-keywords" class="kb-tab-content active">
@@ -795,24 +740,20 @@
                 </div>
             </div>
 
-            <!-- 用户屏蔽标签页 -->
-            <div id="kb-tab-users" class="kb-tab-content">
-                <div class="kb-user-type-selector">
-                    <button class="kb-user-type-btn active" data-type="username">用户名屏蔽</button>
-                    <button class="kb-user-type-btn" data-type="userid">用户ID屏蔽</button>
-                </div>
+            <!-- 用户ID屏蔽标签页 -->
+            <div id="kb-tab-userids" class="kb-tab-content">
                 <div class="kb-input-group">
-                    <input type="text" id="kb-user-input" class="kb-input" placeholder="输入用户名或用户主页链接" />
-                    <button id="kb-add-user-btn" class="kb-btn">新增</button>
+                    <input type="text" id="kb-userid-input" class="kb-input" placeholder="输入用户主页链接" />
+                    <button id="kb-add-userid-btn" class="kb-btn">新增</button>
                 </div>
-                <div class="kb-input-hint" id="kb-user-hint">
-                    输入用户名进行屏蔽（可能存在重名情况）
+                <div class="kb-input-hint" id="kb-userid-hint">
+                    输入用户主页链接进行精准屏蔽
                 </div>
                 <div class="kb-list-container">
-                    <ul id="kb-user-list" class="kb-list"></ul>
+                    <ul id="kb-userid-list" class="kb-list"></ul>
                 </div>
                 <div class="kb-stats">
-                    当前共有 <span id="kb-user-count">0</span> 个屏蔽用户
+                    当前共有 <span id="kb-userid-count">0</span> 个屏蔽用户ID
                 </div>
             </div>
 
@@ -911,24 +852,20 @@
         return { toggleBtn, panel };
     }
 
-    // 更新用户屏蔽提示信息
-    function updateUserInputHint() {
-        const hintElement = document.getElementById('kb-user-hint');
+    // 更新用户ID屏蔽提示信息
+    function updateUseridInputHint() {
+        const hintElement = document.getElementById('kb-userid-hint');
         if (!hintElement) return;
 
-        if (currentUserBlockType === 'username') {
-            hintElement.textContent = '输入用户名进行屏蔽（可能存在重名情况），多个用户名可用逗号或斜杠分隔';
-        } else {
-            const site = getCurrentSite();
-            const siteExamples = {
-                'zhihu': '例如：https://www.zhihu.com/people/user-id',
-                'xiaohongshu': '例如：https://www.xiaohongshu.com/user/profile/用户ID',
-                'bilibili': '例如：https://space.bilibili.com/用户ID',
-                'weibo': '例如：https://weibo.com/u/用户ID'
-            };
-            const example = siteExamples[site] || '请输入完整的用户主页链接';
-            hintElement.textContent = `输入用户主页链接进行精准屏蔽（推荐）\n${example}`;
-        }
+        const site = getCurrentSite();
+        const siteExamples = {
+            'zhihu': '例如：https://www.zhihu.com/people/user-id',
+            'xiaohongshu': '例如：https://www.xiaohongshu.com/user/profile/用户ID',
+            'bilibili': '例如：https://space.bilibili.com/用户ID',
+            'weibo': '例如：https://weibo.com/u/用户ID'
+        };
+        const example = siteExamples[site] || '请输入完整的用户主页链接';
+        hintElement.textContent = `输入用户主页链接进行精准屏蔽（推荐）\n${example}`;
     }
 
     // 从用户链接中提取用户ID
@@ -978,34 +915,26 @@
         });
     }
 
-    // 渲染用户列表（修复版，使用准确的类型判断）
-    function renderUserList() {
-        const list = document.getElementById('kb-user-list');
-        const count = document.getElementById('kb-user-count');
+    // 渲染用户ID列表
+    function renderUseridList() {
+        const list = document.getElementById('kb-userid-list');
+        const count = document.getElementById('kb-userid-count');
 
         if (!list || !count) return;
 
         list.innerHTML = '';
-        count.textContent = BLOCK_USERS.length;
+        count.textContent = BLOCK_USER_IDS.length;
 
-        BLOCK_USERS.forEach((user, index) => {
+        BLOCK_USER_IDS.forEach((userid, index) => {
             const li = document.createElement('li');
             li.className = 'kb-list-item';
             li.dataset.index = index;
-
-            // 使用网站特定的方法判断是否为用户ID
-            const site = getCurrentSite();
-            const config = siteConfigs[site];
-            const isUserId = config && config.isUserId ? config.isUserId(user) : false;
-            const typeClass = isUserId ? 'userid' : 'username';
-            const typeText = isUserId ? '用户ID' : '用户名';
-
             li.innerHTML = `
                 <div class="kb-item-content">
-                    <span class="kb-item-text">${user}</span>
-                    <span class="kb-item-type ${typeClass}">${typeText}</span>
+                    <span class="kb-item-text">${userid}</span>
+                    <span class="kb-item-type userid">用户ID</span>
                 </div>
-                <button class="kb-delete-btn" data-index="${index}" data-type="user">删除</button>
+                <button class="kb-delete-btn" data-index="${index}" data-type="userid">删除</button>
             `;
             list.appendChild(li);
         });
@@ -1013,19 +942,21 @@
 
     // 显示确认删除界面
     function showDeleteConfirm(listItem, index, type) {
-        const list = type === 'keyword' ? BLOCK_KEYWORDS : BLOCK_USERS;
-        const item = list[index];
+        let itemText = '';
+        let typeText = '';
 
-        // 使用网站特定的方法判断是否为用户ID
-        const site = getCurrentSite();
-        const config = siteConfigs[site];
-        const isUserId = type === 'user' && config && config.isUserId ? config.isUserId(item) : false;
-        const typeText = isUserId ? '用户ID' : (type === 'keyword' ? '关键词' : '用户名');
+        if (type === 'keyword') {
+            itemText = BLOCK_KEYWORDS[index];
+            typeText = '关键词';
+        } else if (type === 'userid') {
+            itemText = BLOCK_USER_IDS[index];
+            typeText = '用户ID';
+        }
 
         listItem.innerHTML = `
             <div class="kb-item-content">
-                <span class="kb-item-text">${item}</span>
-                <span class="kb-item-type ${isUserId ? 'userid' : (type === 'keyword' ? '' : 'username')}">${typeText}</span>
+                <span class="kb-item-text">${itemText}</span>
+                <span class="kb-item-type ${type === 'userid' ? 'userid' : ''}">${typeText}</span>
             </div>
             <div class="kb-confirm-group">
                 <button class="kb-confirm-btn kb-confirm-delete" data-index="${index}" data-type="${type}">确认删除</button>
@@ -1036,20 +967,23 @@
 
     // 恢复正常显示
     function restoreNormalView(listItem, index, type) {
-        const list = type === 'keyword' ? BLOCK_KEYWORDS : BLOCK_USERS;
-        const item = list[index];
+        let itemText = '';
+        let typeText = '';
+        let typeClass = '';
 
-        // 使用网站特定的方法判断是否为用户ID
-        const site = getCurrentSite();
-        const config = siteConfigs[site];
-        const isUserId = type === 'user' && config && config.isUserId ? config.isUserId(item) : false;
-        const typeClass = isUserId ? 'userid' : 'username';
-        const typeText = isUserId ? '用户ID' : '用户名';
+        if (type === 'keyword') {
+            itemText = BLOCK_KEYWORDS[index];
+            typeText = '关键词';
+        } else if (type === 'userid') {
+            itemText = BLOCK_USER_IDS[index];
+            typeText = '用户ID';
+            typeClass = 'userid';
+        }
 
         listItem.innerHTML = `
             <div class="kb-item-content">
-                <span class="kb-item-text">${item}</span>
-                <span class="kb-item-type ${typeClass}">${typeText}</span>
+                <span class="kb-item-text">${itemText}</span>
+                ${type !== 'keyword' ? `<span class="kb-item-type ${typeClass}">${typeText}</span>` : ''}
             </div>
             <button class="kb-delete-btn" data-index="${index}" data-type="${type}">删除</button>
         `;
@@ -1071,44 +1005,18 @@
         return false;
     }
 
-    // 添加屏蔽用户
-    function addUsers(input) {
-        if (currentUserBlockType === 'userid') {
-            // 用户ID模式：不分割，直接处理整个输入
-            const processedUsers = [];
+    // 添加屏蔽用户ID
+    function addUserIds(input) {
+        const userId = extractUserIdFromInput(input, getCurrentSite());
 
-            // 如果是单个链接，直接处理
-            const userId = extractUserIdFromInput(input, getCurrentSite());
-            if (userId && !BLOCK_USERS.includes(userId)) {
-                processedUsers.push(userId);
-            } else if (input && !BLOCK_USERS.includes(input)) {
-                // 如果无法提取用户ID，但输入不为空，也添加原始输入
-                processedUsers.push(input);
-            }
-
-            if (processedUsers.length > 0) {
-                BLOCK_USERS.unshift(...processedUsers);
-                saveUsers(BLOCK_USERS);
-                renderUserList();
-                console.log('新增屏蔽用户ID:', processedUsers);
-                return true;
-            } else {
-                alert('无法从输入中提取有效的用户ID，请检查链接格式');
-                return false;
-            }
+        if (userId && !BLOCK_USER_IDS.includes(userId)) {
+            BLOCK_USER_IDS.unshift(userId);
+            saveUserIds(BLOCK_USER_IDS);
+            renderUseridList();
+            console.log('新增屏蔽用户ID:', userId);
+            return true;
         } else {
-            // 用户名模式：保持原来的分割逻辑
-            const users = input.split(/[,，/]/)
-                .map(user => user.replace(/\s+/g, ''))
-                .filter(user => user.length > 0 && !BLOCK_USERS.includes(user));
-
-            if (users.length > 0) {
-                BLOCK_USERS.unshift(...users);
-                saveUsers(BLOCK_USERS);
-                renderUserList();
-                console.log('新增屏蔽用户名:', users);
-                return true;
-            }
+            alert('无法从输入中提取有效的用户ID，请检查链接格式');
             return false;
         }
     }
@@ -1125,13 +1033,13 @@
         return false;
     }
 
-    // 删除屏蔽用户
-    function removeUser(index) {
-        if (index >= 0 && index < BLOCK_USERS.length) {
-            const removed = BLOCK_USERS.splice(index, 1);
-            saveUsers(BLOCK_USERS);
-            renderUserList();
-            console.log('删除屏蔽用户:', removed[0]);
+    // 删除屏蔽用户ID
+    function removeUserid(index) {
+        if (index >= 0 && index < BLOCK_USER_IDS.length) {
+            const removed = BLOCK_USER_IDS.splice(index, 1);
+            saveUserIds(BLOCK_USER_IDS);
+            renderUseridList();
+            console.log('删除屏蔽用户ID:', removed[0]);
             return true;
         }
         return false;
@@ -1578,13 +1486,13 @@
 
             const exportData = {
                 keywords: BLOCK_KEYWORDS,
-                users: BLOCK_USERS,
+                userIds: BLOCK_USER_IDS,
                 lowLikeSettings: ZHIHU_LOW_LIKE_SETTINGS,
                 bilibiliCardBlock: BILIBILI_CARD_BLOCK_ENABLED,
                 zhihuArticleBlock: ZHIHU_ARTICLE_BLOCK_ENABLED,
                 zhihuSaltBlock: ZHIHU_SALT_BLOCK_ENABLED,
                 exportTime: new Date().toISOString(),
-                version: '1.2.2'
+                version: '1.2.6'
             };
 
             const dataStr = JSON.stringify(exportData, null, 2);
@@ -1614,24 +1522,26 @@
                 try {
                     const importedData = JSON.parse(event.target.result);
 
-                    if (!Array.isArray(importedData.keywords) || !Array.isArray(importedData.users)) {
-                        throw new Error('文件格式不正确，必须是包含keywords和users数组的JSON文件');
+                    if (!Array.isArray(importedData.keywords) || !Array.isArray(importedData.userIds)) {
+                        throw new Error('文件格式不正确，必须是包含keywords和userIds数组的JSON文件');
                     }
 
                     const validKeywords = importedData.keywords.filter(k => typeof k === 'string');
-                    const validUsers = importedData.users.filter(u => typeof u === 'string');
+                    const validUserIds = importedData.userIds.filter(u => typeof u === 'string');
 
-                    if (validKeywords.length === 0 && validUsers.length === 0) {
+                    if (validKeywords.length === 0 && validUserIds.length === 0) {
                         throw new Error('文件中没有有效的屏蔽数据');
                     }
 
                     const keywordMsg = validKeywords.length > 0 ? `${validKeywords.length} 个屏蔽词` : '';
-                    const userMsg = validUsers.length > 0 ? `${validUsers.length} 个屏蔽用户` : '';
-                    const confirmMsg = `确定要导入 ${keywordMsg}${keywordMsg && userMsg ? ' 和 ' : ''}${userMsg} 吗？\n这将替换当前的屏蔽数据。`;
+                    const useridMsg = validUserIds.length > 0 ? `${validUserIds.length} 个屏蔽用户ID` : '';
+
+                    const msgParts = [keywordMsg, useridMsg].filter(msg => msg);
+                    const confirmMsg = `确定要导入 ${msgParts.join('、')} 吗？\n这将替换当前的屏蔽数据。`;
 
                     if (confirm(confirmMsg)) {
                         BLOCK_KEYWORDS = [...validKeywords];
-                        BLOCK_USERS = [...validUsers];
+                        BLOCK_USER_IDS = [...validUserIds];
 
                         // 导入低赞设置（如果存在）
                         if (importedData.lowLikeSettings) {
@@ -1658,9 +1568,9 @@
                         }
 
                         saveKeywords(BLOCK_KEYWORDS);
-                        saveUsers(BLOCK_USERS);
+                        saveUserIds(BLOCK_USER_IDS);
                         renderKeywordList();
-                        renderUserList();
+                        renderUseridList();
 
                         // 更新UI
                         updateBilibiliCardTabUI();
@@ -1683,17 +1593,174 @@
         });
     }
 
+    // 处理单个内容元素（简化版，只判断关键词和用户ID）
+    function processContentElement(element, config) {
+        const site = getCurrentSite();
+
+        // B站特殊处理：检测反屏蔽提示并删除
+        if (site === 'bilibili') {
+            if (element.classList.contains('bili-video-card') &&
+                element.classList.contains('is-rcmd') &&
+                !element.classList.contains('enable-no-interest')) {
+
+                let targetContainer = element.closest('.feed-card') || element.closest('.bili-feed-card');
+
+                if (targetContainer) {
+                    targetContainer.remove();
+                    console.log(`${config.logPrefix}: 反屏蔽提示 (删除整个容器)`);
+                } else {
+                    element.remove();
+                    console.log(`${config.logPrefix}: 反屏蔽提示 (删除元素)`);
+                }
+                return;
+            }
+        }
+
+        // 知乎文章和盐选屏蔽
+        if (site === 'zhihu') {
+            // 文章屏蔽
+            if (ZHIHU_ARTICLE_BLOCK_ENABLED) {
+                const articleElement = element.querySelector(config.articleSelector);
+                if (articleElement) {
+                    const container = element.closest(config.saltContainerSelector) || element.closest('.TopstoryItem') || element;
+                    container.remove();
+                    console.log('已屏蔽知乎文章');
+                    return;
+                }
+            }
+
+            // 盐选屏蔽
+            if (ZHIHU_SALT_BLOCK_ENABLED) {
+                const isSaltContent = config.saltSelectors.some(selector =>
+                    element.querySelector(selector)
+                );
+
+                if (isSaltContent) {
+                    const container = element.closest(config.saltContainerSelector) || element;
+                    container.remove();
+                    console.log('已屏蔽盐选内容');
+                    return;
+                }
+            }
+        }
+
+        const titleElement = element.querySelector(config.titleSelector);
+        let title = '';
+
+        if (titleElement) {
+            title = titleElement.textContent.trim();
+        } else {
+            title = element.textContent.trim();
+        }
+
+        // 检查用户信息
+        let userId = '';
+        const userIdElement = element.querySelector(config.userIdSelector);
+
+        // 获取用户ID
+        if (userIdElement && config.extractUserId) {
+            const extractedId = config.extractUserId(userIdElement);
+            if (extractedId) {
+                userId = extractedId;
+            }
+        }
+
+        // 如果userElement有href属性，也尝试提取用户ID
+        const userElement = element.querySelector(config.userSelector);
+        if (userElement && userElement.href && config.extractUserId && !userId) {
+            const extractedId = config.extractUserId(userElement);
+            if (extractedId) {
+                userId = extractedId;
+            }
+        }
+
+        // 检查是否包含屏蔽关键词
+        const hasBlockedKeyword = BLOCK_KEYWORDS.some(keyword => title.includes(keyword));
+
+        // 检查是否包含屏蔽用户ID（精确匹配）
+        const hasBlockedUserid = BLOCK_USER_IDS.some(userid =>
+            userId && userId === userid
+        );
+
+        if (hasBlockedKeyword || hasBlockedUserid) {
+            let containerRemoved = false;
+            let logMessage = '';
+
+            if (hasBlockedKeyword) {
+                logMessage = `${config.logPrefix}: ${title}`;
+            } else if (hasBlockedUserid) {
+                logMessage = `${config.userLogPrefix}(ID): ${userId} (内容: ${title})`;
+            }
+
+            // 针对不同网站的特殊处理：删除整个容器
+            if (site === 'zhihu') {
+                let cardElement = element.closest('.Card.TopstoryItem.TopstoryItem-isRecommend');
+                if (cardElement) {
+                    cardElement.remove();
+                    console.log(`${logMessage} (删除整个卡片)`);
+                    containerRemoved = true;
+                }
+            } else if (site === 'bilibili') {
+                let feedCardElement = element.closest('.feed-card') || element.closest('.bili-feed-card');
+                if (feedCardElement) {
+                    feedCardElement.remove();
+                    console.log(`${logMessage} (删除整个B站容器)`);
+                    containerRemoved = true;
+                }
+            } else if (site === 'xiaohongshu') {
+                let noteItemElement = element.closest('.note-item');
+                if (noteItemElement) {
+                    noteItemElement.remove();
+                    console.log(`${logMessage} (删除整个note-item)`);
+                    containerRemoved = true;
+                }
+            }
+
+            // 如果没找到特定容器或其他网站，使用原来的隐藏方式
+            if (!containerRemoved) {
+                element.style.display = 'none';
+                console.log(`${logMessage} (隐藏元素)`);
+            }
+        }
+    }
+
+    // 处理所有内容元素
+    function processAllContent() {
+        const site = getCurrentSite();
+        const config = siteConfigs[site];
+
+        if (!config) {
+            console.log('未支持的网站:', window.location.hostname);
+            return;
+        }
+
+        document.querySelectorAll(config.containerSelector).forEach(element => {
+            processContentElement(element, config);
+        });
+    }
+
+    // 防抖处理函数
+    function debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func(...args), wait);
+        };
+    }
+
+    const debouncedProcessAllContent = debounce(processAllContent, 500);
+
     // 初始化UI事件
     function initUIEvents() {
         const toggleBtn = document.getElementById('keyword-blocker-toggle');
         const panel = document.getElementById('keyword-blocker-panel');
         const closeBtn = document.getElementById('kb-close');
         const addKeywordBtn = document.getElementById('kb-add-keyword-btn');
-        const addUserBtn = document.getElementById('kb-add-user-btn');
+        const addUseridBtn = document.getElementById('kb-add-userid-btn');
         const keywordInput = document.getElementById('kb-keyword-input');
-        const userInput = document.getElementById('kb-user-input');
+        const useridInput = document.getElementById('kb-userid-input');
         const keywordList = document.getElementById('kb-keyword-list');
-        const userList = document.getElementById('kb-user-list');
+        const useridList = document.getElementById('kb-userid-list');
         const disableSiteBtn = document.getElementById('kb-disable-site');
         const tabs = document.querySelectorAll('.kb-tab');
         const cardToggleBtn = document.getElementById('kb-toggle-card-block');
@@ -1701,25 +1768,6 @@
         const lowLikeThresholdInput = document.getElementById('kb-low-like-threshold');
         const articleToggleBtn = document.getElementById('kb-toggle-article-block');
         const saltToggleBtn = document.getElementById('kb-toggle-salt-block');
-        const userTypeBtns = document.querySelectorAll('.kb-user-type-btn');
-
-        // 用户屏蔽类型切换
-        userTypeBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const type = btn.dataset.type;
-                userTypeBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentUserBlockType = type;
-                updateUserInputHint();
-
-                // 更新输入框提示文字
-                if (type === 'username') {
-                    userInput.placeholder = '输入用户名';
-                } else {
-                    userInput.placeholder = '输入用户主页链接';
-                }
-            });
-        });
 
         // 标签页切换
         tabs.forEach(tab => {
@@ -1780,15 +1828,13 @@
             }
         });
 
-        // 新增屏蔽用户
-        addUserBtn.addEventListener('click', (e) => {
+        // 新增屏蔽用户ID
+        addUseridBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const value = userInput.value.trim();
+            const value = useridInput.value.trim();
             if (value) {
-                if (addUsers(value)) {
-                    userInput.value = '';
-                } else {
-                    alert('请输入有效的用户名或用户链接');
+                if (addUserIds(value)) {
+                    useridInput.value = '';
                 }
             }
         });
@@ -1800,9 +1846,9 @@
             }
         });
 
-        userInput.addEventListener('keypress', (e) => {
+        useridInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                addUserBtn.click();
+                addUseridBtn.click();
             }
         });
 
@@ -1820,8 +1866,8 @@
                     e.stopPropagation();
                     if (type === 'keyword') {
                         removeKeyword(index);
-                    } else {
-                        removeUser(index);
+                    } else if (type === 'userid') {
+                        removeUserid(index);
                     }
                 } else if (e.target.classList.contains('kb-confirm-cancel') && itemType === type) {
                     e.stopPropagation();
@@ -1832,7 +1878,7 @@
         }
 
         setupListEvents(keywordList, 'keyword');
-        setupListEvents(userList, 'user');
+        setupListEvents(useridList, 'userid');
 
         // B站卡片屏蔽开关
         if (cardToggleBtn) {
@@ -1911,176 +1957,15 @@
         setupImportExport();
     }
 
-    // 处理单个内容元素（修复用户匹配逻辑）
-    function processContentElement(element, config) {
-        const site = getCurrentSite();
-
-        // B站特殊处理：检测反屏蔽提示并删除
-        if (site === 'bilibili') {
-            if (element.classList.contains('bili-video-card') &&
-                element.classList.contains('is-rcmd') &&
-                !element.classList.contains('enable-no-interest')) {
-
-                let targetContainer = element.closest('.feed-card') || element.closest('.bili-feed-card');
-
-                if (targetContainer) {
-                    targetContainer.remove();
-                    console.log(`${config.logPrefix}: 反屏蔽提示 (删除整个容器)`);
-                } else {
-                    element.remove();
-                    console.log(`${config.logPrefix}: 反屏蔽提示 (删除元素)`);
-                }
-                return;
-            }
-        }
-
-        // 知乎文章和盐选屏蔽
-        if (site === 'zhihu') {
-            // 文章屏蔽
-            if (ZHIHU_ARTICLE_BLOCK_ENABLED) {
-                const articleElement = element.querySelector(config.articleSelector);
-                if (articleElement) {
-                    const container = element.closest(config.saltContainerSelector) || element.closest('.TopstoryItem') || element;
-                    container.remove();
-                    console.log('已屏蔽知乎文章');
-                    return; // 屏蔽后不再处理其他条件
-                }
-            }
-
-            // 盐选屏蔽
-            if (ZHIHU_SALT_BLOCK_ENABLED) {
-                const isSaltContent = config.saltSelectors.some(selector =>
-                    element.querySelector(selector)
-                );
-
-                if (isSaltContent) {
-                    const container = element.closest(config.saltContainerSelector) || element;
-                    container.remove();
-                    console.log('已屏蔽盐选内容');
-                    return; // 屏蔽后不再处理其他条件
-                }
-            }
-        }
-
-        const titleElement = element.querySelector(config.titleSelector);
-        let title = '';
-
-        if (titleElement) {
-            title = titleElement.textContent.trim();
-        } else {
-            title = element.textContent.trim();
-        }
-
-        // 检查用户信息
-        let userInfo = '';
-        let userId = '';
-        const userElement = element.querySelector(config.userSelector);
-        const userIdElement = element.querySelector(config.userIdSelector);
-
-        if (userElement) {
-            userInfo = userElement.textContent.trim();
-        }
-
-        if (userIdElement && config.extractUserId) {
-            userId = config.extractUserId(userIdElement);
-        }
-
-        // 检查是否包含屏蔽关键词
-        const hasBlockedKeyword = BLOCK_KEYWORDS.some(keyword => title.includes(keyword));
-
-        // 检查是否包含屏蔽用户（修复版，使用准确的类型判断）
-        const hasBlockedUser = BLOCK_USERS.some(user => {
-            // 使用网站特定的方法判断是否为用户ID
-            const isUserId = config.isUserId ? config.isUserId(user) : false;
-
-            if (isUserId) {
-                // 如果是用户ID，精确匹配用户ID
-                return userId && userId === user;
-            } else {
-                // 如果是用户名，匹配用户名
-                return userInfo && userInfo.includes(user);
-            }
-        });
-
-        if (hasBlockedKeyword || hasBlockedUser) {
-            let containerRemoved = false;
-            let logMessage = '';
-
-            if (hasBlockedKeyword && hasBlockedUser) {
-                logMessage = `${config.logPrefix}和${config.userLogPrefix}: ${title} (用户: ${userInfo})`;
-            } else if (hasBlockedKeyword) {
-                logMessage = `${config.logPrefix}: ${title}`;
-            } else {
-                logMessage = `${config.userLogPrefix}: ${userInfo} (内容: ${title})`;
-            }
-
-            // 针对不同网站的特殊处理：删除整个容器
-            if (site === 'zhihu') {
-                let cardElement = element.closest('.Card.TopstoryItem.TopstoryItem-isRecommend');
-                if (cardElement) {
-                    cardElement.remove();
-                    console.log(`${logMessage} (删除整个卡片)`);
-                    containerRemoved = true;
-                }
-            } else if (site === 'bilibili') {
-                let feedCardElement = element.closest('.feed-card') || element.closest('.bili-feed-card');
-                if (feedCardElement) {
-                    feedCardElement.remove();
-                    console.log(`${logMessage} (删除整个B站容器)`);
-                    containerRemoved = true;
-                }
-            } else if (site === 'xiaohongshu') {
-                let noteItemElement = element.closest('.note-item');
-                if (noteItemElement) {
-                    noteItemElement.remove();
-                    console.log(`${logMessage} (删除整个note-item)`);
-                    containerRemoved = true;
-                }
-            }
-
-            // 如果没找到特定容器或其他网站，使用原来的隐藏方式
-            if (!containerRemoved) {
-                element.style.display = 'none';
-                console.log(`${logMessage} (隐藏元素)`);
-            }
-        }
-    }
-
-    // 处理所有内容元素
-    function processAllContent() {
-        const site = getCurrentSite();
-        const config = siteConfigs[site];
-
-        if (!config) {
-            console.log('未支持的网站:', window.location.hostname);
-            return;
-        }
-
-        document.querySelectorAll(config.containerSelector).forEach(element => {
-            processContentElement(element, config);
-        });
-    }
-
-    // 防抖处理函数
-    function debounce(func, wait) {
-        let timeout;
-        return function(...args) {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func(...args), wait);
-        };
-    }
-
-    const debouncedProcessAllContent = debounce(processAllContent, 500);
-
     // 初始化管理UI
     function initManagementUI() {
         createManagementUI();
         renderKeywordList();
-        renderUserList();
+        renderUseridList();
         initUIEvents();
 
-        // 初始化用户屏蔽提示
-        updateUserInputHint();
+        // 初始化用户ID屏蔽提示
+        updateUseridInputHint();
 
         // 如果是B站，初始化卡片屏蔽功能
         if (getCurrentSite() === 'bilibili') {
