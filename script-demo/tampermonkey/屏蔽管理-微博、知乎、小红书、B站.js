@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         屏蔽管理
 // @namespace    http://tampermonkey.net/
-// @version      1.2.3
+// @version      1.3.1
 // @description  屏蔽微博、知乎、小红书、B站含关键词的内容和指定用户，支持精准用户ID屏蔽和B站卡片屏蔽，新增知乎低赞内容屏蔽、文章屏蔽和盐选内容屏蔽
 // @match        https://www.zhihu.com/
 // @match        https://www.xiaohongshu.com/*
@@ -34,12 +34,30 @@
     const ZHIHU_LOW_LIKE_KEY = 'zhihu_low_like_settings';
     const ZHIHU_ARTICLE_BLOCK_KEY = 'zhihu_article_block_enabled';
     const ZHIHU_SALT_BLOCK_KEY = 'zhihu_salt_block_enabled';
+    const LAST_BACKUP_TIME_KEY = 'keyword_blocker_last_backup';
+    const STATS_KEY = 'keyword_blocker_stats';
 
     // 知乎低赞屏蔽设置
     const DEFAULT_LOW_LIKE_SETTINGS = {
         enabled: false,
         threshold: 10
     };
+
+    // 屏蔽统计
+    const DEFAULT_STATS = {
+        totalBlocked: 0,
+        keywordBlocked: 0,
+        useridBlocked: 0,
+        lastBlockTime: null,
+        startupCount: 0
+    };
+
+    // 性能优化缓存
+    let cachedElements = new Map();
+    let observers = [];
+
+    // 屏蔽统计
+    let stats = {...DEFAULT_STATS};
 
     function saveKeywords(keywords) {
         localStorage.setItem(STORAGE_KEYWORDS_KEY, JSON.stringify(keywords));
@@ -66,6 +84,28 @@
         } catch (e) {
             console.error('加载屏蔽用户ID失败:', e);
             return [...DEFAULT_USER_IDS];
+        }
+    }
+
+    // 加载统计
+    function loadStats() {
+        try {
+            const saved = localStorage.getItem(STATS_KEY);
+            const loadedStats = saved ? JSON.parse(saved) : {...DEFAULT_STATS};
+            loadedStats.startupCount = (loadedStats.startupCount || 0) + 1;
+            return loadedStats;
+        } catch (e) {
+            console.error('加载统计失败:', e);
+            return {...DEFAULT_STATS, startupCount: 1};
+        }
+    }
+
+    // 保存统计
+    function saveStats() {
+        try {
+            localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+        } catch (e) {
+            console.error('保存统计失败:', e);
         }
     }
 
@@ -313,6 +353,7 @@
                 box-shadow: 0 4px 16px rgba(0,0,0,0.15);
                 transition: left 0.3s ease;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                overflow: hidden;
             }
 
             #keyword-blocker-panel.show {
@@ -528,6 +569,31 @@
                 text-align: center;
             }
 
+            .kb-stats-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                margin-top: 8px;
+            }
+
+            .kb-stat-item {
+                padding: 8px;
+                background: white;
+                border-radius: 4px;
+                border: 1px solid #f0f0f0;
+            }
+
+            .kb-stat-value {
+                font-size: 16px;
+                font-weight: bold;
+                color: #1890ff;
+            }
+
+            .kb-stat-label {
+                font-size: 11px;
+                color: #999;
+            }
+
             .kb-import-export-container {
                 padding: 12px 16px;
                 background: #f9f9f9;
@@ -688,6 +754,19 @@
             .kb-zhihu-feature:last-child {
                 margin-bottom: 0;
             }
+
+            .kb-backup-reminder {
+                background: #fff7e6;
+                border: 1px solid #ffd591;
+                border-radius: 6px;
+                padding: 12px;
+                margin: 12px 0;
+                font-size: 13px;
+            }
+
+            .kb-backup-reminder.hidden {
+                display: none;
+            }
         `;
         document.head.appendChild(style);
 
@@ -695,6 +774,7 @@
         const toggleBtn = document.createElement('button');
         toggleBtn.id = 'keyword-blocker-toggle';
         toggleBtn.textContent = '屏蔽管理';
+        toggleBtn.title = 'Ctrl+Shift+B 打开/关闭面板';
         document.body.appendChild(toggleBtn);
 
         // 创建管理面板
@@ -720,10 +800,11 @@
                 <button class="kb-tab" data-tab="userids">用户ID屏蔽</button>
                 ${currentSite === 'bilibili' ? '<button class="kb-tab" data-tab="cards">卡片屏蔽</button>' : ''}
                 ${currentSite === 'zhihu' ? '<button class="kb-tab" data-tab="zhihu-advanced">知乎增强</button>' : ''}
+                <button class="kb-tab" data-tab="stats">统计</button>
             </div>
         `;
 
-        // 构建内容区域HTML - 移除用户名屏蔽相关内容
+        // 构建内容区域HTML - 移除了关键词优化建议
         const contentHtml = `
             <!-- 关键词屏蔽标签页 -->
             <div id="kb-tab-keywords" class="kb-tab-content active">
@@ -732,6 +813,10 @@
                     <button id="kb-add-keyword-btn" class="kb-btn">新增</button>
                 </div>
                 <div class="kb-input-hint">多个关键词可用逗号或斜杠分隔</div>
+                <div class="kb-backup-reminder hidden" id="kb-backup-reminder">
+                    <strong>💡 备份提醒</strong><br>
+                    您已经一周没有备份数据了，建议导出备份以防数据丢失。
+                </div>
                 <div class="kb-list-container">
                     <ul id="kb-keyword-list" class="kb-list"></ul>
                 </div>
@@ -827,6 +912,35 @@
                 </div>
             </div>
             ` : ''}
+
+            <!-- 统计标签页 -->
+            <div id="kb-tab-stats" class="kb-tab-content">
+                <div class="kb-stats" style="text-align: left; padding: 20px;">
+                    <h3 style="margin-top: 0; margin-bottom: 16px;">屏蔽统计</h3>
+                    <div class="kb-stats-grid">
+                        <div class="kb-stat-item">
+                            <div class="kb-stat-value" id="stat-total">${stats.totalBlocked}</div>
+                            <div class="kb-stat-label">总屏蔽次数</div>
+                        </div>
+                        <div class="kb-stat-item">
+                            <div class="kb-stat-value" id="stat-keyword">${stats.keywordBlocked}</div>
+                            <div class="kb-stat-label">关键词屏蔽</div>
+                        </div>
+                        <div class="kb-stat-item">
+                            <div class="kb-stat-value" id="stat-userid">${stats.useridBlocked}</div>
+                            <div class="kb-stat-label">用户ID屏蔽</div>
+                        </div>
+                        <div class="kb-stat-item">
+                            <div class="kb-stat-value" id="stat-startup">${stats.startupCount}</div>
+                            <div class="kb-stat-label">启动次数</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 16px; font-size: 12px; color: #999;">
+                        最后屏蔽时间: <span id="stat-last-time">${stats.lastBlockTime ? new Date(stats.lastBlockTime).toLocaleString() : '暂无'}</span>
+                    </div>
+                    <button id="kb-reset-stats" class="kb-btn" style="margin-top: 16px; width: 100%; background: #ff4d4f;">重置统计</button>
+                </div>
+            </div>
         `;
 
         panel.innerHTML = `
@@ -1045,6 +1159,22 @@
         return false;
     }
 
+    // 检查备份提醒
+    function checkBackupReminder() {
+        const reminderElement = document.getElementById('kb-backup-reminder');
+        if (!reminderElement) return;
+
+        const lastBackup = localStorage.getItem(LAST_BACKUP_TIME_KEY);
+        const now = Date.now();
+        const oneWeek = 7 * 24 * 60 * 60 * 1000;
+
+        if (!lastBackup || (now - parseInt(lastBackup)) > oneWeek) {
+            reminderElement.classList.remove('hidden');
+        } else {
+            reminderElement.classList.add('hidden');
+        }
+    }
+
     // B站卡片屏蔽功能
     function initBilibiliCardBlock() {
         if (getCurrentSite() !== 'bilibili') return;
@@ -1092,6 +1222,8 @@
             childList: true,
             subtree: true
         });
+
+        observers.push(observer);
     }
 
     function toggleBilibiliCardBlock() {
@@ -1135,6 +1267,8 @@
             childList: true,
             subtree: true
         });
+
+        observers.push(observer);
     }
 
     function processLowLikeContent() {
@@ -1271,6 +1405,8 @@
             childList: true,
             subtree: true
         });
+
+        observers.push(observer);
     }
 
     // 知乎盐选屏蔽功能
@@ -1336,6 +1472,8 @@
             childList: true,
             subtree: true
         });
+
+        observers.push(observer);
     }
 
     function processZhihuSaltContent() {
@@ -1467,6 +1605,35 @@
         }
     }
 
+    // 更新统计显示
+    function updateStatsDisplay() {
+        document.getElementById('stat-total').textContent = stats.totalBlocked;
+        document.getElementById('stat-keyword').textContent = stats.keywordBlocked;
+        document.getElementById('stat-userid').textContent = stats.useridBlocked;
+        document.getElementById('stat-startup').textContent = stats.startupCount;
+        document.getElementById('stat-last-time').textContent =
+            stats.lastBlockTime ? new Date(stats.lastBlockTime).toLocaleString() : '暂无';
+    }
+
+    // 重置统计
+    function resetStats() {
+        stats = {...DEFAULT_STATS, startupCount: stats.startupCount};
+        saveStats();
+        updateStatsDisplay();
+    }
+
+    // 更新屏蔽统计
+    function updateStats(type) {
+        stats.totalBlocked++;
+        stats.lastBlockTime = Date.now();
+
+        if (type === 'keyword') stats.keywordBlocked++;
+        if (type === 'userid') stats.useridBlocked++;
+
+        saveStats();
+        updateStatsDisplay();
+    }
+
     // 添加导入导出功能函数
     function setupImportExport() {
         const exportBtn = document.getElementById('kb-export-btn');
@@ -1491,8 +1658,9 @@
                 bilibiliCardBlock: BILIBILI_CARD_BLOCK_ENABLED,
                 zhihuArticleBlock: ZHIHU_ARTICLE_BLOCK_ENABLED,
                 zhihuSaltBlock: ZHIHU_SALT_BLOCK_ENABLED,
+                stats: stats,
                 exportTime: new Date().toISOString(),
-                version: '1.2.6'
+                version: '1.3.1'
             };
 
             const dataStr = JSON.stringify(exportData, null, 2);
@@ -1504,6 +1672,10 @@
             linkElement.setAttribute('href', dataUri);
             linkElement.setAttribute('download', exportFileDefaultName);
             linkElement.click();
+
+            // 更新最后备份时间
+            localStorage.setItem(LAST_BACKUP_TIME_KEY, Date.now().toString());
+            checkBackupReminder();
 
             console.log(`${sourceName}屏蔽数据已导出`);
         });
@@ -1567,6 +1739,12 @@
                             saveZhihuSaltBlockState(ZHIHU_SALT_BLOCK_ENABLED);
                         }
 
+                        // 导入统计（如果存在）
+                        if (importedData.stats) {
+                            stats = {...importedData.stats};
+                            saveStats();
+                        }
+
                         saveKeywords(BLOCK_KEYWORDS);
                         saveUserIds(BLOCK_USER_IDS);
                         renderKeywordList();
@@ -1577,6 +1755,8 @@
                         updateZhihuLowLikeTabUI();
                         updateZhihuArticleTabUI();
                         updateZhihuSaltTabUI();
+                        updateStatsDisplay();
+                        checkBackupReminder();
 
                         alert('屏蔽数据导入成功！');
 
@@ -1593,7 +1773,16 @@
         });
     }
 
-    // 处理单个内容元素（简化版，只判断关键词和用户ID）
+    // 安全处理内容元素（添加错误处理）
+    function safeProcessContentElement(element, config) {
+        try {
+            processContentElement(element, config);
+        } catch (error) {
+            console.error('处理内容元素时出错:', error, element);
+        }
+    }
+
+    // 处理单个内容元素（只扫描标题，不扫描整个内容）
     function processContentElement(element, config) {
         const site = getCurrentSite();
 
@@ -1644,14 +1833,15 @@
             }
         }
 
+        // 只从标题元素获取文本，不扫描整个内容
         const titleElement = element.querySelector(config.titleSelector);
         let title = '';
 
         if (titleElement) {
             title = titleElement.textContent.trim();
-        } else {
-            title = element.textContent.trim();
         }
+        // 如果没有找到标题元素，直接跳过关键词检查，只检查用户ID
+        // 这样避免了扫描整个内容文本
 
         // 检查用户信息
         let userId = '';
@@ -1674,8 +1864,8 @@
             }
         }
 
-        // 检查是否包含屏蔽关键词
-        const hasBlockedKeyword = BLOCK_KEYWORDS.some(keyword => title.includes(keyword));
+        // 检查是否包含屏蔽关键词（只在标题中检查）
+        const hasBlockedKeyword = title && BLOCK_KEYWORDS.some(keyword => title.includes(keyword));
 
         // 检查是否包含屏蔽用户ID（精确匹配）
         const hasBlockedUserid = BLOCK_USER_IDS.some(userid =>
@@ -1688,8 +1878,10 @@
 
             if (hasBlockedKeyword) {
                 logMessage = `${config.logPrefix}: ${title}`;
+                updateStats('keyword');
             } else if (hasBlockedUserid) {
-                logMessage = `${config.userLogPrefix}(ID): ${userId} (内容: ${title})`;
+                logMessage = `${config.userLogPrefix}(ID): ${userId} (内容: ${title || '无标题'})`;
+                updateStats('userid');
             }
 
             // 针对不同网站的特殊处理：删除整个容器
@@ -1724,7 +1916,7 @@
         }
     }
 
-    // 处理所有内容元素
+    // 处理所有内容元素（使用缓存优化）
     function processAllContent() {
         const site = getCurrentSite();
         const config = siteConfigs[site];
@@ -1734,9 +1926,21 @@
             return;
         }
 
-        document.querySelectorAll(config.containerSelector).forEach(element => {
-            processContentElement(element, config);
+        // 使用缓存优化
+        if (!cachedElements.has(config.containerSelector)) {
+            cachedElements.set(config.containerSelector,
+                document.querySelectorAll(config.containerSelector));
+        }
+
+        const elements = cachedElements.get(config.containerSelector);
+        elements.forEach(element => {
+            if (element.isConnected) { // 确保元素仍在DOM中
+                safeProcessContentElement(element, config);
+            }
         });
+
+        // 定期清除缓存
+        setTimeout(() => cachedElements.clear(), 5000);
     }
 
     // 防抖处理函数
@@ -1749,6 +1953,50 @@
     }
 
     const debouncedProcessAllContent = debounce(processAllContent, 500);
+
+    // 初始化键盘快捷键
+    function initKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Shift+B 打开/关闭屏蔽面板
+            if (e.ctrlKey && e.shiftKey && e.key === 'B') {
+                e.preventDefault();
+                const panel = document.getElementById('keyword-blocker-panel');
+                const toggleBtn = document.getElementById('keyword-blocker-toggle');
+                const isShowing = panel.classList.contains('show');
+
+                if (isShowing) {
+                    panel.classList.remove('show');
+                    toggleBtn.style.display = 'block';
+                } else {
+                    panel.classList.add('show');
+                    toggleBtn.style.display = 'none';
+                }
+            }
+
+            // ESC 关闭面板
+            if (e.key === 'Escape') {
+                const panel = document.getElementById('keyword-blocker-panel');
+                const toggleBtn = document.getElementById('keyword-blocker-toggle');
+                panel.classList.remove('show');
+                toggleBtn.style.display = 'block';
+            }
+        });
+    }
+
+    // 清理函数（防止内存泄漏）
+    function cleanup() {
+        observers.forEach(observer => observer.disconnect());
+        observers = [];
+        cachedElements.clear();
+
+        // 清理动态添加的样式
+        if (bilibiliCardStyleElement) {
+            bilibiliCardStyleElement.remove();
+        }
+        if (zhihuSaltStyleElement) {
+            zhihuSaltStyleElement.remove();
+        }
+    }
 
     // 初始化UI事件
     function initUIEvents() {
@@ -1768,6 +2016,7 @@
         const lowLikeThresholdInput = document.getElementById('kb-low-like-threshold');
         const articleToggleBtn = document.getElementById('kb-toggle-article-block');
         const saltToggleBtn = document.getElementById('kb-toggle-salt-block');
+        const resetStatsBtn = document.getElementById('kb-reset-stats');
 
         // 标签页切换
         tabs.forEach(tab => {
@@ -1925,6 +2174,16 @@
             });
         }
 
+        // 重置统计
+        if (resetStatsBtn) {
+            resetStatsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (confirm('确定要重置所有统计信息吗？')) {
+                    resetStats();
+                }
+            });
+        }
+
         // 禁用/启用当前网站
         disableSiteBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1963,6 +2222,9 @@
         renderKeywordList();
         renderUseridList();
         initUIEvents();
+        initKeyboardShortcuts();
+        updateStatsDisplay();
+        checkBackupReminder();
 
         // 初始化用户ID屏蔽提示
         updateUseridInputHint();
@@ -1978,10 +2240,17 @@
             initZhihuArticleBlock();
             initZhihuSaltBlock();
         }
+
+        // 添加清理监听
+        window.addEventListener('beforeunload', cleanup);
     }
 
     // 主初始化函数
     function init() {
+        // 加载统计
+        stats = loadStats();
+        saveStats();
+
         // 检查当前网站是否被禁用
         if (isCurrentSiteDisabled()) {
             console.log(`四平台关键词和用户屏蔽器: ${getCurrentSite()} 已被禁用，仅显示管理界面`);
@@ -2017,12 +2286,12 @@
                     mutation.addedNodes.forEach(node => {
                         if (node.nodeType === 1) {
                             if (node.matches && node.matches(config.containerSelector)) {
-                                processContentElement(node, config);
+                                safeProcessContentElement(node, config);
                             } else if (node.querySelectorAll) {
                                 const elements = node.querySelectorAll(config.containerSelector);
                                 if (elements.length > 0) {
                                     shouldProcess = true;
-                                    elements.forEach(element => processContentElement(element, config));
+                                    elements.forEach(element => safeProcessContentElement(element, config));
                                 }
                             }
                         }
@@ -2034,6 +2303,7 @@
         });
 
         observer.observe(document.body, { childList: true, subtree: true });
+        observers.push(observer);
 
         // 滚动事件监听
         let scrollTimeout;
