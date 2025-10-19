@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         屏蔽管理
 // @namespace    http://tampermonkey.net/
-// @version      1.3.1
+// @version      1.3.2
 // @description  屏蔽微博、知乎、小红书、B站含关键词的内容和指定用户，支持精准用户ID屏蔽和B站卡片屏蔽，新增知乎低赞内容屏蔽、文章屏蔽和盐选内容屏蔽
 // @match        https://www.zhihu.com/
 // @match        https://www.xiaohongshu.com/*
