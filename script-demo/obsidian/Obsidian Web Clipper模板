@@ -1,0 +1,41 @@
+{
+	"schemaVersion": "0.1.0",
+	"name": "知乎内容",
+	"behavior": "create",
+	"noteContentFormat": "{{selectorHtml:.RichText, .QuestionAnswer-content .RichText, .Post-RichText|first|replace:\"href=\\\"https://zhida\":\"\"|replace:\"data-actual\":\"\"|markdown}}",
+	"properties": [
+		{
+			"name": "title",
+			"value": "{{title|replace:\\\" - 知乎\\\":\\\"\\\"|replace:/^\\(.*?\\)/g, \\\"\\\"|trim}}",
+			"type": "text"
+		},
+		{
+			"name": "source",
+			"value": "{{url}}",
+			"type": "text"
+		},
+		{
+			"name": "author",
+			"value": "{{selector:.UserLink-link, .AuthorInfo-head, .AuthorInfo-name|slice:1,2}}",
+			"type": "multitext"
+		},
+		{
+			"name": "created",
+			"value": "{{date}}",
+			"type": "date"
+		},
+		{
+			"name": "tags",
+			"value": "知乎",
+			"type": "multitext"
+		}
+	],
+	"triggers": [
+		"https://www.zhihu.com/question/*/answer/*",
+		"https://zhuanlan.zhihu.com/p/*",
+		"https://www.zhihu.com/pin/*",
+		"https://www.zhihu.com/question/*"
+	],
+	"noteNameFormat": "{{title|replace:\" - 知乎\":\"\"|replace:/^\\(.*?\\)/g, \"\"|slice:0,40}}",
+	"path": "待看"
+}
