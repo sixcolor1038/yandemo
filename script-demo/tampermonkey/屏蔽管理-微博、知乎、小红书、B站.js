@@ -289,6 +289,26 @@
             logPrefix: '已屏蔽微博内容',
             userLogPrefix: '已屏蔽微博用户',
             extractUserId: function(userElement) {
+                if (userElement && userElement.href) {
+                    // 处理微博用户链接
+                    const href = userElement.href;
+                    // 匹配 https://weibo.com/u/7365927199 格式
+                    const uMatch = href.match(/weibo\.com\/u\/(\d+)/);
+                    if (uMatch && uMatch[1]) {
+                        return uMatch[1];
+                    }
+                    // 匹配 https://weibo.com/n/用户名 格式（需要进一步处理）
+                    const nMatch = href.match(/weibo\.com\/n\/([^\/?]+)/);
+                    if (nMatch && nMatch[1]) {
+                        return nMatch[1]; // 返回用户名
+                    }
+                    // 匹配 https://weibo.com/用户名 格式
+                    const directMatch = href.match(/weibo\.com\/([^\/?]+)/);
+                    if (directMatch && directMatch[1] &&
+                        !['u', 'n', 'p', 'search', 'home', 'login'].includes(directMatch[1])) {
+                        return directMatch[1]; // 返回用户名
+                    }
+                }
                 return null;
             }
         }
