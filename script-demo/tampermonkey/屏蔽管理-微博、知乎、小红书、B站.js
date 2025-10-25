@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         屏蔽管理
 // @namespace    http://tampermonkey.net/
-// @version      1.3.2
-// @description  屏蔽微博、知乎、小红书、B站含关键词的内容和指定用户，支持精准用户ID屏蔽和B站卡片屏蔽，新增知乎低赞内容屏蔽、文章屏蔽和盐选内容屏蔽
+// @version      1.4.1
+// @description  屏蔽微博、知乎、小红书、B站含关键词的内容和指定用户，支持精准用户ID屏蔽和B站卡片屏蔽，新增知乎低赞内容屏蔽、文章屏蔽、盐选内容屏蔽和直答屏蔽
 // @match        https://www.zhihu.com/
 // @match        https://www.xiaohongshu.com/*
 // @match        https://www.bilibili.com/
@@ -34,6 +34,7 @@
     const ZHIHU_LOW_LIKE_KEY = 'zhihu_low_like_settings';
     const ZHIHU_ARTICLE_BLOCK_KEY = 'zhihu_article_block_enabled';
     const ZHIHU_SALT_BLOCK_KEY = 'zhihu_salt_block_enabled';
+    const ZHIHU_ZHIDA_BLOCK_KEY = 'zhihu_zhida_block_settings';
     const LAST_BACKUP_TIME_KEY = 'keyword_blocker_last_backup';
     const STATS_KEY = 'keyword_blocker_stats';
 
@@ -42,6 +43,23 @@
         enabled: false,
         threshold: 10
     };
+
+    // 知乎直答屏蔽设置
+    const DEFAULT_ZHIDA_SETTINGS = {
+        enabled: false,
+        replaceMethod: "removeLink" // "removeLink", "zhihu", "baidu", "google", "bing"
+    };
+
+    // 搜索路径映射
+    const SEARCH_PATH = {
+        "zhihu": "https://www.zhihu.com/search?type=content&q=",
+        "baidu": "https://www.baidu.com/s?wd=",
+        "google": "https://www.google.com.hk/search?q=",
+        "bing": "https://www.bing.com/search?q="
+    };
+
+    // 已处理的直答元素标记
+    const CLASS_LISTENED = "ctz-zhida-processed";
 
     // 屏蔽统计
     const DEFAULT_STATS = {
@@ -169,6 +187,21 @@
         localStorage.setItem(ZHIHU_SALT_BLOCK_KEY, JSON.stringify(enabled));
     }
 
+    // 知乎直答屏蔽设置管理
+    function loadZhidaSettings() {
+        try {
+            const saved = localStorage.getItem(ZHIHU_ZHIDA_BLOCK_KEY);
+            return saved ? JSON.parse(saved) : {...DEFAULT_ZHIDA_SETTINGS};
+        } catch (e) {
+            console.error('加载知乎直答屏蔽设置失败:', e);
+            return {...DEFAULT_ZHIDA_SETTINGS};
+        }
+    }
+
+    function saveZhidaSettings(settings) {
+        localStorage.setItem(ZHIHU_ZHIDA_BLOCK_KEY, JSON.stringify(settings));
+    }
+
     // 禁用网站管理
     function saveDisabledSites(sites) {
         localStorage.setItem(DISABLED_SITES_KEY, JSON.stringify(sites));
@@ -219,7 +252,7 @@
         return 'unknown';
     }
 
-    // 网站特定的配置 - 简化版本
+    // 网站特定的配置
     const siteConfigs = {
         zhihu: {
             containerSelector: '.ContentItem, .TopstoryItem, .ArticleItem, .css-79elbk',
@@ -238,6 +271,7 @@
                 '.KfeCollection-PureVideoCard-V2'
             ],
             saltContainerSelector: 'div.Card.TopstoryItem.TopstoryItem-isRecommend',
+            zhidaSelector: '.RichContent-EntityWord',
             extractUserId: function(userElement) {
                 if (userElement && userElement.href) {
                     const match = userElement.href.match(/zhihu\.com\/people\/([^\/?]+)/);
@@ -290,23 +324,19 @@
             userLogPrefix: '已屏蔽微博用户',
             extractUserId: function(userElement) {
                 if (userElement && userElement.href) {
-                    // 处理微博用户链接
                     const href = userElement.href;
-                    // 匹配 https://weibo.com/u/7365927199 格式
                     const uMatch = href.match(/weibo\.com\/u\/(\d+)/);
                     if (uMatch && uMatch[1]) {
                         return uMatch[1];
                     }
-                    // 匹配 https://weibo.com/n/用户名 格式（需要进一步处理）
                     const nMatch = href.match(/weibo\.com\/n\/([^\/?]+)/);
                     if (nMatch && nMatch[1]) {
-                        return nMatch[1]; // 返回用户名
+                        return nMatch[1];
                     }
-                    // 匹配 https://weibo.com/用户名 格式
                     const directMatch = href.match(/weibo\.com\/([^\/?]+)/);
                     if (directMatch && directMatch[1] &&
                         !['u', 'n', 'p', 'search', 'home', 'login'].includes(directMatch[1])) {
-                        return directMatch[1]; // 返回用户名
+                        return directMatch[1];
                     }
                 }
                 return null;
@@ -329,6 +359,9 @@
     let ZHIHU_ARTICLE_BLOCK_ENABLED = isZhihuArticleBlockEnabled();
     let ZHIHU_SALT_BLOCK_ENABLED = isZhihuSaltBlockEnabled();
     let zhihuSaltStyleElement = null;
+
+    // 知乎直答屏蔽设置
+    let ZHIHU_ZHIDA_SETTINGS = loadZhidaSettings();
 
     // 创建管理UI
     function createManagementUI() {
@@ -675,23 +708,16 @@
                 margin-bottom: 12px;
             }
 
-            .kb-card-block-section, .kb-low-like-section, .kb-zhihu-section {
+            .kb-card-block-section, .kb-zhihu-section {
                 padding: 20px;
                 text-align: center;
             }
 
-            .kb-card-block-title, .kb-low-like-title, .kb-zhihu-title {
+            .kb-card-block-title, .kb-zhihu-title {
                 font-size: 16px;
                 font-weight: 500;
                 margin-bottom: 16px;
                 color: #262626;
-            }
-
-            .kb-card-block-desc, .kb-low-like-desc, .kb-zhihu-desc {
-                font-size: 14px;
-                color: #666;
-                margin-bottom: 20px;
-                line-height: 1.5;
             }
 
             .kb-toggle-btn {
@@ -736,45 +762,6 @@
                 background: #ff4d4f;
             }
 
-            .kb-threshold-control {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 12px;
-                margin-bottom: 16px;
-            }
-
-            .kb-threshold-input {
-                width: 80px;
-                padding: 8px 12px;
-                border: 1px solid #d9d9d9;
-                border-radius: 4px;
-                font-size: 14px;
-                text-align: center;
-            }
-
-            .kb-threshold-input:focus {
-                border-color: #1890ff;
-                box-shadow: 0 0 0 2px rgba(24,144,255,0.2);
-            }
-
-            .kb-threshold-label {
-                font-size: 14px;
-                color: #262626;
-            }
-
-            .kb-zhihu-feature {
-                margin-bottom: 20px;
-                padding: 16px;
-                border: 1px solid #f0f0f0;
-                border-radius: 8px;
-                background: #fafafa;
-            }
-
-            .kb-zhihu-feature:last-child {
-                margin-bottom: 0;
-            }
-
             .kb-backup-reminder {
                 background: #fff7e6;
                 border: 1px solid #ffd591;
@@ -786,6 +773,51 @@
 
             .kb-backup-reminder.hidden {
                 display: none;
+            }
+
+            .kb-feature-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 12px 16px;
+                border-bottom: 1px solid #f0f0f0;
+                transition: background 0.2s ease;
+            }
+
+            .kb-feature-item:hover {
+                background: #f5f5f5;
+            }
+
+            .kb-feature-item:last-child {
+                border-bottom: none;
+            }
+
+            .kb-feature-title {
+                display: flex;
+                align-items: center;
+                font-size: 14px;
+                color: #262626;
+                flex: 1;
+            }
+
+            .kb-feature-controls {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .kb-threshold-input {
+                width: 60px;
+                padding: 4px 8px;
+                border: 1px solid #d9d9d9;
+                border-radius: 4px;
+                font-size: 12px;
+                text-align: center;
+            }
+
+            .kb-threshold-input:focus {
+                border-color: #1890ff;
+                box-shadow: 0 0 0 2px rgba(24,144,255,0.2);
             }
         `;
         document.head.appendChild(style);
@@ -813,7 +845,7 @@
         const btnText = isDisabled ? `重新启用${siteName}屏蔽` : `有BUG？停止屏蔽${siteName}`;
         const statusText = isDisabled ? `⚠️ ${siteName}屏蔽功能已停用` : '屏蔽管理';
 
-        // 构建选项卡HTML - 移除用户名屏蔽选项卡
+        // 构建选项卡HTML
         const tabHtml = `
             <div class="kb-tab-container">
                 <button class="kb-tab active" data-tab="keywords">关键词屏蔽</button>
@@ -824,7 +856,7 @@
             </div>
         `;
 
-        // 构建内容区域HTML - 移除了关键词优化建议
+        // 构建内容区域HTML - 简化版本
         const contentHtml = `
             <!-- 关键词屏蔽标签页 -->
             <div id="kb-tab-keywords" class="kb-tab-content active">
@@ -870,9 +902,6 @@
                         <span class="kb-status-indicator ${BILIBILI_CARD_BLOCK_ENABLED ? 'kb-status-enabled' : 'kb-status-disabled'}"></span>
                         B站卡片屏蔽
                     </div>
-                    <div class="kb-card-block-desc">
-                        启用后会同时隐藏B站的分区推荐卡片（如"国创"、"综艺"等）和直播推荐卡片，让界面更加清爽。
-                    </div>
                     <button id="kb-toggle-card-block" class="kb-toggle-btn ${BILIBILI_CARD_BLOCK_ENABLED ? '' : 'disabled'}">
                         ${BILIBILI_CARD_BLOCK_ENABLED ? '已启用 - 点击关闭' : '已关闭 - 点击启用'}
                     </button>
@@ -880,53 +909,54 @@
             </div>
             ` : ''}
 
-            <!-- 知乎增强屏蔽标签页 -->
+            <!-- 知乎增强屏蔽标签页 - 简化版本 -->
             ${currentSite === 'zhihu' ? `
             <div id="kb-tab-zhihu-advanced" class="kb-tab-content">
-                <div class="kb-zhihu-section">
+                <div style="padding: 0;">
                     <!-- 低赞屏蔽功能 -->
-                    <div class="kb-zhihu-feature">
-                        <div class="kb-zhihu-title">
+                    <div class="kb-feature-item">
+                        <div class="kb-feature-title">
                             <span class="kb-status-indicator ${ZHIHU_LOW_LIKE_SETTINGS.enabled ? 'kb-status-enabled' : 'kb-status-disabled'}"></span>
-                            知乎低赞内容屏蔽
+                            低赞内容屏蔽
                         </div>
-                        <div class="kb-zhihu-desc">
-                            启用后会隐藏点赞数低于设定阈值的内容，让您只看到高质量的回答。
+                        <div class="kb-feature-controls">
+                            <input type="number" id="kb-low-like-threshold" class="kb-threshold-input" value="${ZHIHU_LOW_LIKE_SETTINGS.threshold}" min="0" title="点赞阈值" />
+                            <button id="kb-toggle-low-like" class="kb-toggle-btn ${ZHIHU_LOW_LIKE_SETTINGS.enabled ? '' : 'disabled'}">
+                                ${ZHIHU_LOW_LIKE_SETTINGS.enabled ? '启用中' : '已关闭'}
+                            </button>
                         </div>
-                        <div class="kb-threshold-control">
-                            <label class="kb-threshold-label">点赞阈值:</label>
-                            <input type="number" id="kb-low-like-threshold" class="kb-threshold-input" value="${ZHIHU_LOW_LIKE_SETTINGS.threshold}" min="0" />
-                        </div>
-                        <button id="kb-toggle-low-like" class="kb-toggle-btn ${ZHIHU_LOW_LIKE_SETTINGS.enabled ? '' : 'disabled'}">
-                            ${ZHIHU_LOW_LIKE_SETTINGS.enabled ? '已启用 - 点击关闭' : '已关闭 - 点击启用'}
-                        </button>
                     </div>
 
                     <!-- 文章屏蔽功能 -->
-                    <div class="kb-zhihu-feature">
-                        <div class="kb-zhihu-title">
+                    <div class="kb-feature-item">
+                        <div class="kb-feature-title">
                             <span class="kb-status-indicator ${ZHIHU_ARTICLE_BLOCK_ENABLED ? 'kb-status-enabled' : 'kb-status-disabled'}"></span>
-                            知乎文章屏蔽
-                        </div>
-                        <div class="kb-zhihu-desc">
-                            启用后会隐藏知乎的所有文章内容，只显示问答内容。
+                            文章屏蔽
                         </div>
                         <button id="kb-toggle-article-block" class="kb-toggle-btn ${ZHIHU_ARTICLE_BLOCK_ENABLED ? '' : 'disabled'}">
-                            ${ZHIHU_ARTICLE_BLOCK_ENABLED ? '已启用 - 点击关闭' : '已关闭 - 点击启用'}
+                            ${ZHIHU_ARTICLE_BLOCK_ENABLED ? '启用中' : '已关闭'}
                         </button>
                     </div>
 
                     <!-- 盐选内容屏蔽功能 -->
-                    <div class="kb-zhihu-feature">
-                        <div class="kb-zhihu-title">
+                    <div class="kb-feature-item">
+                        <div class="kb-feature-title">
                             <span class="kb-status-indicator ${ZHIHU_SALT_BLOCK_ENABLED ? 'kb-status-enabled' : 'kb-status-disabled'}"></span>
-                            知乎盐选内容屏蔽
-                        </div>
-                        <div class="kb-zhihu-desc">
-                            启用后会隐藏知乎的盐选付费内容，包括盐选专栏、付费故事等。
+                            盐选内容屏蔽
                         </div>
                         <button id="kb-toggle-salt-block" class="kb-toggle-btn ${ZHIHU_SALT_BLOCK_ENABLED ? '' : 'disabled'}">
-                            ${ZHIHU_SALT_BLOCK_ENABLED ? '已启用 - 点击关闭' : '已关闭 - 点击启用'}
+                            ${ZHIHU_SALT_BLOCK_ENABLED ? '启用中' : '已关闭'}
+                        </button>
+                    </div>
+
+                    <!-- 直答屏蔽功能 -->
+                    <div class="kb-feature-item">
+                        <div class="kb-feature-title">
+                            <span class="kb-status-indicator ${ZHIHU_ZHIDA_SETTINGS.enabled ? 'kb-status-enabled' : 'kb-status-disabled'}"></span>
+                            直答屏蔽
+                        </div>
+                        <button id="kb-toggle-zhida-block" class="kb-toggle-btn ${ZHIHU_ZHIDA_SETTINGS.enabled ? '' : 'disabled'}">
+                            ${ZHIHU_ZHIDA_SETTINGS.enabled ? '启用中' : '已关闭'}
                         </button>
                     </div>
                 </div>
@@ -1010,13 +1040,11 @@
         if (!config || !config.extractUserId) return null;
 
         try {
-            // 确保输入是完整的URL
             let url = input;
             if (!url.startsWith('http://') && !url.startsWith('https://')) {
                 url = 'https://' + url;
             }
 
-            // 创建一个临时元素来模拟用户链接
             const tempElement = document.createElement('a');
             tempElement.href = url;
 
@@ -1258,10 +1286,8 @@
     function initZhihuLowLikeBlock() {
         if (getCurrentSite() !== 'zhihu') return;
 
-        // 初始处理
         processLowLikeContent();
 
-        // 监听DOM变化
         const observer = new MutationObserver(function(mutations) {
             let shouldProcess = false;
             for (let mutation of mutations) {
@@ -1311,14 +1337,11 @@
         });
     }
 
-    // 修复点赞数解析函数
     function parseLikeCount(likeElement) {
         if (!likeElement) return null;
 
-        // 方法1: 从按钮的文本内容中提取
         let likeText = likeElement.textContent.trim();
 
-        // 方法2: 从 aria-label 属性中提取
         if (!likeText || likeText === '赞同') {
             const ariaLabel = likeElement.getAttribute('aria-label');
             if (ariaLabel && ariaLabel.includes('赞同')) {
@@ -1328,17 +1351,14 @@
 
         if (!likeText) return null;
 
-        // 提取数字
         let likeCount = 0;
 
-        // 处理"万"单位
         if (likeText.includes('万')) {
             const match = likeText.match(/(\d+(\.\d+)?)万/);
             if (match) {
                 likeCount = Math.round(parseFloat(match[1]) * 10000);
             }
         } else {
-            // 处理普通数字
             const match = likeText.match(/\d+/);
             if (match) {
                 likeCount = parseInt(match[0]);
@@ -1355,7 +1375,6 @@
         if (ZHIHU_LOW_LIKE_SETTINGS.enabled) {
             processLowLikeContent();
         } else {
-            // 如果关闭低赞屏蔽，重新显示所有内容
             const config = siteConfigs.zhihu;
             document.querySelectorAll(config.containerSelector).forEach(element => {
                 element.style.display = '';
@@ -1392,7 +1411,6 @@
         const articleElements = document.querySelectorAll(config.articleSelector);
 
         articleElements.forEach(article => {
-            // 屏蔽所有文章
             const container = article.closest(config.saltContainerSelector) || article.closest('.TopstoryItem') || article;
             container.remove();
             console.log('已屏蔽知乎文章');
@@ -1467,7 +1485,6 @@
                 if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
                     for (let node of mutation.addedNodes) {
                         if (node.nodeType === 1) {
-                            // 检查是否是盐选内容
                             const isSaltContent = siteConfigs.zhihu.saltSelectors.some(selector =>
                                 node.matches && node.matches(selector) ||
                                 (node.querySelector && node.querySelector(selector))
@@ -1501,7 +1518,6 @@
 
         const config = siteConfigs.zhihu;
 
-        // 移除盐选内容容器
         config.saltSelectors.forEach(selector => {
             document.querySelectorAll(selector).forEach(element => {
                 const container = element.closest(config.saltContainerSelector);
@@ -1511,6 +1527,79 @@
                 }
             });
         });
+    }
+
+    // 知乎直答屏蔽功能
+    function initZhihuZhidaBlock() {
+        if (getCurrentSite() !== 'zhihu') return;
+
+        processZhidaContent();
+
+        const observer = new MutationObserver(function(mutations) {
+            let shouldProcess = false;
+            for (let mutation of mutations) {
+                if (mutation.addedNodes.length > 0) {
+                    for (let node of mutation.addedNodes) {
+                        if (node.nodeType === 1) {
+                            const hasZhida = node.matches && node.matches(siteConfigs.zhihu.zhidaSelector) ||
+                                (node.querySelector && node.querySelector(siteConfigs.zhihu.zhidaSelector));
+                            if (hasZhida) {
+                                shouldProcess = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (shouldProcess) break;
+            }
+            if (shouldProcess) {
+                processZhidaContent();
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        observers.push(observer);
+    }
+
+    function processZhidaContent() {
+        if (getCurrentSite() !== 'zhihu' || !ZHIHU_ZHIDA_SETTINGS.enabled) return;
+
+        const { replaceMethod } = ZHIHU_ZHIDA_SETTINGS;
+
+        if (replaceMethod === "default") return;
+
+        const domsZhida = document.querySelectorAll(siteConfigs.zhihu.zhidaSelector);
+        if (!domsZhida.length) return;
+
+        for (let i = 0, len = domsZhida.length; i < len; i++) {
+            const domItem = domsZhida[i];
+            if (domItem.classList.contains(CLASS_LISTENED)) continue;
+
+            domItem.classList.add(CLASS_LISTENED);
+            const domSvg = domItem.querySelector("svg");
+            if (domSvg) {
+                domSvg.style.display = "none";
+            }
+
+            if (replaceMethod === "removeLink") {
+                domItem.onclick = function(e) {
+                    e.preventDefault();
+                };
+                domItem.style.cssText = `color: inherit!important; cursor: text!important; background: transparent!important;`;
+                continue;
+            }
+
+            const prevTextContent = domItem.textContent || "";
+            domItem.innerHTML = prevTextContent + '<span style="transform: rotate(-45deg);display: inline-block;">⚲</span>';
+
+            if (SEARCH_PATH[replaceMethod]) {
+                domItem.href = SEARCH_PATH[replaceMethod] + encodeURIComponent(prevTextContent);
+            }
+        }
     }
 
     // 切换函数
@@ -1537,7 +1626,22 @@
         return ZHIHU_SALT_BLOCK_ENABLED;
     }
 
-    // 更新B站卡片屏蔽选项卡的UI
+    function toggleZhihuZhidaBlock() {
+        ZHIHU_ZHIDA_SETTINGS.enabled = !ZHIHU_ZHIDA_SETTINGS.enabled;
+        saveZhidaSettings(ZHIHU_ZHIDA_SETTINGS);
+
+        if (ZHIHU_ZHIDA_SETTINGS.enabled) {
+            processZhidaContent();
+        } else {
+            document.querySelectorAll('.' + CLASS_LISTENED).forEach(el => {
+                el.classList.remove(CLASS_LISTENED);
+            });
+        }
+        updateZhihuZhidaTabUI();
+        return ZHIHU_ZHIDA_SETTINGS.enabled;
+    }
+
+    // 更新UI状态
     function updateBilibiliCardTabUI() {
         if (getCurrentSite() !== 'bilibili') return;
 
@@ -1559,21 +1663,20 @@
         }
     }
 
-    // 更新知乎低赞屏蔽选项卡的UI
     function updateZhihuLowLikeTabUI() {
         if (getCurrentSite() !== 'zhihu') return;
 
         const toggleBtn = document.getElementById('kb-toggle-low-like');
-        const statusIndicator = document.querySelector('#kb-tab-zhihu-advanced .kb-zhihu-feature:first-child .kb-status-indicator');
+        const statusIndicator = document.querySelector('.kb-feature-item:nth-child(1) .kb-status-indicator');
 
         if (toggleBtn && statusIndicator) {
             if (ZHIHU_LOW_LIKE_SETTINGS.enabled) {
-                toggleBtn.textContent = '已启用 - 点击关闭';
+                toggleBtn.textContent = '启用中';
                 toggleBtn.classList.remove('disabled');
                 statusIndicator.classList.remove('kb-status-disabled');
                 statusIndicator.classList.add('kb-status-enabled');
             } else {
-                toggleBtn.textContent = '已关闭 - 点击启用';
+                toggleBtn.textContent = '已关闭';
                 toggleBtn.classList.add('disabled');
                 statusIndicator.classList.remove('kb-status-enabled');
                 statusIndicator.classList.add('kb-status-disabled');
@@ -1581,21 +1684,20 @@
         }
     }
 
-    // 更新知乎文章屏蔽选项卡的UI
     function updateZhihuArticleTabUI() {
         if (getCurrentSite() !== 'zhihu') return;
 
         const toggleBtn = document.getElementById('kb-toggle-article-block');
-        const statusIndicator = document.querySelector('#kb-tab-zhihu-advanced .kb-zhihu-feature:nth-child(2) .kb-status-indicator');
+        const statusIndicator = document.querySelector('.kb-feature-item:nth-child(2) .kb-status-indicator');
 
         if (toggleBtn && statusIndicator) {
             if (ZHIHU_ARTICLE_BLOCK_ENABLED) {
-                toggleBtn.textContent = '已启用 - 点击关闭';
+                toggleBtn.textContent = '启用中';
                 toggleBtn.classList.remove('disabled');
                 statusIndicator.classList.remove('kb-status-disabled');
                 statusIndicator.classList.add('kb-status-enabled');
             } else {
-                toggleBtn.textContent = '已关闭 - 点击启用';
+                toggleBtn.textContent = '已关闭';
                 toggleBtn.classList.add('disabled');
                 statusIndicator.classList.remove('kb-status-enabled');
                 statusIndicator.classList.add('kb-status-disabled');
@@ -1603,21 +1705,41 @@
         }
     }
 
-    // 更新知乎盐选屏蔽选项卡的UI
     function updateZhihuSaltTabUI() {
         if (getCurrentSite() !== 'zhihu') return;
 
         const toggleBtn = document.getElementById('kb-toggle-salt-block');
-        const statusIndicator = document.querySelector('#kb-tab-zhihu-advanced .kb-zhihu-feature:last-child .kb-status-indicator');
+        const statusIndicator = document.querySelector('.kb-feature-item:nth-child(3) .kb-status-indicator');
 
         if (toggleBtn && statusIndicator) {
             if (ZHIHU_SALT_BLOCK_ENABLED) {
-                toggleBtn.textContent = '已启用 - 点击关闭';
+                toggleBtn.textContent = '启用中';
                 toggleBtn.classList.remove('disabled');
                 statusIndicator.classList.remove('kb-status-disabled');
                 statusIndicator.classList.add('kb-status-enabled');
             } else {
-                toggleBtn.textContent = '已关闭 - 点击启用';
+                toggleBtn.textContent = '已关闭';
+                toggleBtn.classList.add('disabled');
+                statusIndicator.classList.remove('kb-status-enabled');
+                statusIndicator.classList.add('kb-status-disabled');
+            }
+        }
+    }
+
+    function updateZhihuZhidaTabUI() {
+        if (getCurrentSite() !== 'zhihu') return;
+
+        const toggleBtn = document.getElementById('kb-toggle-zhida-block');
+        const statusIndicator = document.querySelector('.kb-feature-item:nth-child(4) .kb-status-indicator');
+
+        if (toggleBtn && statusIndicator) {
+            if (ZHIHU_ZHIDA_SETTINGS.enabled) {
+                toggleBtn.textContent = '启用中';
+                toggleBtn.classList.remove('disabled');
+                statusIndicator.classList.remove('kb-status-disabled');
+                statusIndicator.classList.add('kb-status-enabled');
+            } else {
+                toggleBtn.textContent = '已关闭';
                 toggleBtn.classList.add('disabled');
                 statusIndicator.classList.remove('kb-status-enabled');
                 statusIndicator.classList.add('kb-status-disabled');
@@ -1660,7 +1782,6 @@
         const importBtn = document.getElementById('kb-import-btn');
         const importFile = document.getElementById('kb-import-file');
 
-        // 导出功能
         exportBtn.addEventListener('click', () => {
             const currentSite = getCurrentSite();
             const siteNames = {
@@ -1678,9 +1799,10 @@
                 bilibiliCardBlock: BILIBILI_CARD_BLOCK_ENABLED,
                 zhihuArticleBlock: ZHIHU_ARTICLE_BLOCK_ENABLED,
                 zhihuSaltBlock: ZHIHU_SALT_BLOCK_ENABLED,
+                zhihuZhidaSettings: ZHIHU_ZHIDA_SETTINGS,
                 stats: stats,
                 exportTime: new Date().toISOString(),
-                version: '1.3.1'
+                version: '1.4.1'
             };
 
             const dataStr = JSON.stringify(exportData, null, 2);
@@ -1693,14 +1815,12 @@
             linkElement.setAttribute('download', exportFileDefaultName);
             linkElement.click();
 
-            // 更新最后备份时间
             localStorage.setItem(LAST_BACKUP_TIME_KEY, Date.now().toString());
             checkBackupReminder();
 
             console.log(`${sourceName}屏蔽数据已导出`);
         });
 
-        // 导入功能
         importBtn.addEventListener('click', () => {
             importFile.click();
         });
@@ -1735,31 +1855,31 @@
                         BLOCK_KEYWORDS = [...validKeywords];
                         BLOCK_USER_IDS = [...validUserIds];
 
-                        // 导入低赞设置（如果存在）
                         if (importedData.lowLikeSettings) {
                             ZHIHU_LOW_LIKE_SETTINGS = {...importedData.lowLikeSettings};
                             saveLowLikeSettings(ZHIHU_LOW_LIKE_SETTINGS);
                         }
 
-                        // 导入B站卡片设置（如果存在）
                         if (importedData.bilibiliCardBlock !== undefined) {
                             BILIBILI_CARD_BLOCK_ENABLED = importedData.bilibiliCardBlock;
                             saveBilibiliCardBlockState(BILIBILI_CARD_BLOCK_ENABLED);
                         }
 
-                        // 导入知乎文章屏蔽设置（如果存在）
                         if (importedData.zhihuArticleBlock !== undefined) {
                             ZHIHU_ARTICLE_BLOCK_ENABLED = importedData.zhihuArticleBlock;
                             saveZhihuArticleBlockState(ZHIHU_ARTICLE_BLOCK_ENABLED);
                         }
 
-                        // 导入知乎盐选屏蔽设置（如果存在）
                         if (importedData.zhihuSaltBlock !== undefined) {
                             ZHIHU_SALT_BLOCK_ENABLED = importedData.zhihuSaltBlock;
                             saveZhihuSaltBlockState(ZHIHU_SALT_BLOCK_ENABLED);
                         }
 
-                        // 导入统计（如果存在）
+                        if (importedData.zhihuZhidaSettings) {
+                            ZHIHU_ZHIDA_SETTINGS = {...importedData.zhihuZhidaSettings};
+                            saveZhidaSettings(ZHIHU_ZHIDA_SETTINGS);
+                        }
+
                         if (importedData.stats) {
                             stats = {...importedData.stats};
                             saveStats();
@@ -1770,11 +1890,11 @@
                         renderKeywordList();
                         renderUseridList();
 
-                        // 更新UI
                         updateBilibiliCardTabUI();
                         updateZhihuLowLikeTabUI();
                         updateZhihuArticleTabUI();
                         updateZhihuSaltTabUI();
+                        updateZhihuZhidaTabUI();
                         updateStatsDisplay();
                         checkBackupReminder();
 
@@ -1793,7 +1913,7 @@
         });
     }
 
-    // 安全处理内容元素（添加错误处理）
+    // 安全处理内容元素
     function safeProcessContentElement(element, config) {
         try {
             processContentElement(element, config);
@@ -1802,11 +1922,11 @@
         }
     }
 
-    // 处理单个内容元素（只扫描标题，不扫描整个内容）
+    // 处理单个内容元素
     function processContentElement(element, config) {
         const site = getCurrentSite();
 
-        // B站特殊处理：检测反屏蔽提示并删除
+        // B站特殊处理
         if (site === 'bilibili') {
             if (element.classList.contains('bili-video-card') &&
                 element.classList.contains('is-rcmd') &&
@@ -1827,7 +1947,6 @@
 
         // 知乎文章和盐选屏蔽
         if (site === 'zhihu') {
-            // 文章屏蔽
             if (ZHIHU_ARTICLE_BLOCK_ENABLED) {
                 const articleElement = element.querySelector(config.articleSelector);
                 if (articleElement) {
@@ -1838,7 +1957,6 @@
                 }
             }
 
-            // 盐选屏蔽
             if (ZHIHU_SALT_BLOCK_ENABLED) {
                 const isSaltContent = config.saltSelectors.some(selector =>
                     element.querySelector(selector)
@@ -1853,21 +1971,16 @@
             }
         }
 
-        // 只从标题元素获取文本，不扫描整个内容
         const titleElement = element.querySelector(config.titleSelector);
         let title = '';
 
         if (titleElement) {
             title = titleElement.textContent.trim();
         }
-        // 如果没有找到标题元素，直接跳过关键词检查，只检查用户ID
-        // 这样避免了扫描整个内容文本
 
-        // 检查用户信息
         let userId = '';
         const userIdElement = element.querySelector(config.userIdSelector);
 
-        // 获取用户ID
         if (userIdElement && config.extractUserId) {
             const extractedId = config.extractUserId(userIdElement);
             if (extractedId) {
@@ -1875,7 +1988,6 @@
             }
         }
 
-        // 如果userElement有href属性，也尝试提取用户ID
         const userElement = element.querySelector(config.userSelector);
         if (userElement && userElement.href && config.extractUserId && !userId) {
             const extractedId = config.extractUserId(userElement);
@@ -1884,10 +1996,7 @@
             }
         }
 
-        // 检查是否包含屏蔽关键词（只在标题中检查）
         const hasBlockedKeyword = title && BLOCK_KEYWORDS.some(keyword => title.includes(keyword));
-
-        // 检查是否包含屏蔽用户ID（精确匹配）
         const hasBlockedUserid = BLOCK_USER_IDS.some(userid =>
             userId && userId === userid
         );
@@ -1904,7 +2013,6 @@
                 updateStats('userid');
             }
 
-            // 针对不同网站的特殊处理：删除整个容器
             if (site === 'zhihu') {
                 let cardElement = element.closest('.Card.TopstoryItem.TopstoryItem-isRecommend');
                 if (cardElement) {
@@ -1928,7 +2036,6 @@
                 }
             }
 
-            // 如果没找到特定容器或其他网站，使用原来的隐藏方式
             if (!containerRemoved) {
                 element.style.display = 'none';
                 console.log(`${logMessage} (隐藏元素)`);
@@ -1936,7 +2043,7 @@
         }
     }
 
-    // 处理所有内容元素（使用缓存优化）
+    // 处理所有内容元素
     function processAllContent() {
         const site = getCurrentSite();
         const config = siteConfigs[site];
@@ -1946,7 +2053,6 @@
             return;
         }
 
-        // 使用缓存优化
         if (!cachedElements.has(config.containerSelector)) {
             cachedElements.set(config.containerSelector,
                 document.querySelectorAll(config.containerSelector));
@@ -1954,12 +2060,11 @@
 
         const elements = cachedElements.get(config.containerSelector);
         elements.forEach(element => {
-            if (element.isConnected) { // 确保元素仍在DOM中
+            if (element.isConnected) {
                 safeProcessContentElement(element, config);
             }
         });
 
-        // 定期清除缓存
         setTimeout(() => cachedElements.clear(), 5000);
     }
 
@@ -1977,7 +2082,6 @@
     // 初始化键盘快捷键
     function initKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
-            // Ctrl+Shift+B 打开/关闭屏蔽面板
             if (e.ctrlKey && e.shiftKey && e.key === 'B') {
                 e.preventDefault();
                 const panel = document.getElementById('keyword-blocker-panel');
@@ -1993,7 +2097,6 @@
                 }
             }
 
-            // ESC 关闭面板
             if (e.key === 'Escape') {
                 const panel = document.getElementById('keyword-blocker-panel');
                 const toggleBtn = document.getElementById('keyword-blocker-toggle');
@@ -2003,13 +2106,12 @@
         });
     }
 
-    // 清理函数（防止内存泄漏）
+    // 清理函数
     function cleanup() {
         observers.forEach(observer => observer.disconnect());
         observers = [];
         cachedElements.clear();
 
-        // 清理动态添加的样式
         if (bilibiliCardStyleElement) {
             bilibiliCardStyleElement.remove();
         }
@@ -2036,6 +2138,7 @@
         const lowLikeThresholdInput = document.getElementById('kb-low-like-threshold');
         const articleToggleBtn = document.getElementById('kb-toggle-article-block');
         const saltToggleBtn = document.getElementById('kb-toggle-salt-block');
+        const zhidaToggleBtn = document.getElementById('kb-toggle-zhida-block');
         const resetStatsBtn = document.getElementById('kb-reset-stats');
 
         // 标签页切换
@@ -2065,19 +2168,16 @@
             }
         });
 
-        // 关闭面板函数
         function closePanel() {
             panel.classList.remove('show');
             toggleBtn.style.display = 'block';
         }
 
-        // 关闭面板
         closeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             closePanel();
         });
 
-        // 点击面板外区域关闭
         document.addEventListener('click', (e) => {
             if (!panel.contains(e.target) && !toggleBtn.contains(e.target)) {
                 closePanel();
@@ -2194,6 +2294,14 @@
             });
         }
 
+        // 知乎直答屏蔽开关
+        if (zhidaToggleBtn) {
+            zhidaToggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleZhihuZhidaBlock();
+            });
+        }
+
         // 重置统计
         if (resetStatsBtn) {
             resetStatsBtn.addEventListener('click', (e) => {
@@ -2246,32 +2354,27 @@
         updateStatsDisplay();
         checkBackupReminder();
 
-        // 初始化用户ID屏蔽提示
         updateUseridInputHint();
 
-        // 如果是B站，初始化卡片屏蔽功能
         if (getCurrentSite() === 'bilibili') {
             initBilibiliCardBlock();
         }
 
-        // 如果是知乎，初始化低赞屏蔽、文章屏蔽和盐选屏蔽功能
         if (getCurrentSite() === 'zhihu') {
             initZhihuLowLikeBlock();
             initZhihuArticleBlock();
             initZhihuSaltBlock();
+            initZhihuZhidaBlock();
         }
 
-        // 添加清理监听
         window.addEventListener('beforeunload', cleanup);
     }
 
     // 主初始化函数
     function init() {
-        // 加载统计
         stats = loadStats();
         saveStats();
 
-        // 检查当前网站是否被禁用
         if (isCurrentSiteDisabled()) {
             console.log(`四平台关键词和用户屏蔽器: ${getCurrentSite()} 已被禁用，仅显示管理界面`);
             if (document.readyState === 'loading') {
@@ -2282,7 +2385,6 @@
             return;
         }
 
-        // 初始化处理
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
                 processAllContent();
@@ -2294,7 +2396,6 @@
         }
         window.addEventListener('load', processAllContent);
 
-        // 监听DOM变化
         const observer = new MutationObserver(mutations => {
             const site = getCurrentSite();
             const config = siteConfigs[site];
@@ -2325,14 +2426,12 @@
         observer.observe(document.body, { childList: true, subtree: true });
         observers.push(observer);
 
-        // 滚动事件监听
         let scrollTimeout;
         window.addEventListener('scroll', () => {
             clearTimeout(scrollTimeout);
             scrollTimeout = setTimeout(debouncedProcessAllContent, 1000);
         }, { passive: true });
 
-        // 定时扫描
         setInterval(processAllContent, 5000);
 
         console.log(`四平台关键词和用户屏蔽器已启动，当前网站: ${getCurrentSite()}`);
